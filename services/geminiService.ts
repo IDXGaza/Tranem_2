@@ -1,6 +1,8 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
+// سيتم تعويض process.env.API_KEY بواسطة Vite أثناء البناء
+// تأكد من إضافة API_KEY في إعدادات البيئة (Environment Variables) في Netlify
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
 export const generateTrackInsight = async (trackName: string) => {
