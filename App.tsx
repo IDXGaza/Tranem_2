@@ -10,6 +10,7 @@ const App: React.FC = () => {
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number | null>(null);
   const [isEditingName, setIsEditingName] = useState(false);
   const [editingNameValue, setEditingNameValue] = useState("");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [playerState, setPlayerState] = useState<PlayerState>({
     isPlaying: false,
     currentTime: 0,
@@ -50,7 +51,8 @@ const App: React.FC = () => {
       if (playerState.isPlaying) {
         audioRef.current?.play().catch(e => console.error("Playback error:", e));
       }
-      setIsEditingName(false); // Reset editing mode when track changes
+      setIsEditingName(false);
+      setIsSidebarOpen(false); // Close sidebar on mobile after selection
     }
   }, [currentTrack?.id]);
 
@@ -83,11 +85,6 @@ const App: React.FC = () => {
   };
 
   const addTrack = (file: File) => {
-    if (!file.type.startsWith('audio/')) {
-      alert("عذراً، يمكنك استيراد الملفات الصوتية فقط.");
-      return;
-    }
-
     const newTrack: Track = {
       id: Math.random().toString(36).substr(2, 9),
       name: file.name.replace(/\.[^/.]+$/, ""),
@@ -100,7 +97,7 @@ const App: React.FC = () => {
       playbackRate: 1,
     };
     setTracks(prev => [...prev, newTrack]);
-    if (currentTrackIndex === null) setCurrentTrackIndex(0);
+    if (currentTrackIndex === null) setCurrentTrackIndex(tracks.length);
   };
 
   const toggleFavorite = (id: string) => {
@@ -121,13 +118,6 @@ const App: React.FC = () => {
       idx === currentTrackIndex ? { ...t, name: editingNameValue.trim() } : t
     ));
     setIsEditingName(false);
-  };
-
-  const startEditingName = () => {
-    if (currentTrack) {
-      setEditingNameValue(currentTrack.name);
-      setIsEditingName(true);
-    }
   };
 
   const addTimestamp = () => {
@@ -151,25 +141,36 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex h-screen bg-[#f8fafb] text-slate-700 overflow-hidden font-cairo watercolor-bg">
+    <div className="flex flex-col md:flex-row h-screen bg-[#f8fafb] text-slate-700 overflow-hidden font-cairo watercolor-bg">
+      {/* Mobile Header */}
+      <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-100 z-50">
+        <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-[#4da8ab]">
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+        </button>
+        <h1 className="text-xl font-bold text-slate-800">ترانيم</h1>
+        <div className="w-10"></div>
+      </header>
+
       <Sidebar 
         onImport={addTrack} 
         tracks={tracks} 
         currentId={currentTrack?.id || null} 
-        onSelect={setCurrentTrackIndex} 
+        onSelect={setCurrentTrackIndex}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
       />
       
-      <main className="flex-1 flex flex-col relative overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-8 lg:p-12">
+      <main className="flex-1 flex flex-col relative overflow-hidden h-full">
+        <div className="flex-1 overflow-y-auto p-6 md:p-12 pb-48">
           {currentTrack ? (
-            <div className="max-w-4xl mx-auto space-y-12">
+            <div className="max-w-4xl mx-auto space-y-8 md:space-y-12">
               <div className="flex flex-col items-center">
-                <div className="relative p-8">
+                <div className="relative p-4 md:p-8 w-full max-w-[240px] md:max-w-sm">
                   <div className="absolute inset-0 bg-[#4da8ab]/10 rounded-full blur-3xl transform scale-110"></div>
-                  <div className="relative group aspect-square w-full max-w-[280px] md:max-w-sm overflow-hidden rounded-[40px] shadow-xl shadow-[#4da8ab]/20 border-4 border-white">
+                  <div className="relative group aspect-square w-full overflow-hidden rounded-[30px] md:rounded-[40px] shadow-xl shadow-[#4da8ab]/20 border-4 border-white">
                     <img src={currentTrack.coverUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={currentTrack.name} />
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <label className="bg-white/90 px-6 py-2 rounded-full text-sm font-bold cursor-pointer hover:bg-white transition-all text-[#4da8ab]">
+                      <label className="bg-white/90 px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-bold cursor-pointer hover:bg-white transition-all text-[#4da8ab]">
                         تغيير الغلاف
                         <input 
                           type="file" 
@@ -182,43 +183,34 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="mt-8 text-center w-full max-w-2xl px-4">
+                <div className="mt-6 text-center w-full max-w-2xl px-4">
                   {isEditingName ? (
                     <div className="flex flex-col items-center gap-4">
                       <input
                         type="text"
                         value={editingNameValue}
                         onChange={(e) => setEditingNameValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && updateTrackName()}
                         onBlur={updateTrackName}
                         autoFocus
-                        className="w-full bg-white border-2 border-[#4da8ab] rounded-2xl px-6 py-3 text-3xl font-bold text-slate-800 text-center focus:outline-none shadow-lg shadow-[#4da8ab]/10"
+                        className="w-full bg-white border-2 border-[#4da8ab] rounded-2xl px-4 py-2 text-xl font-bold text-slate-800 text-center focus:outline-none"
                       />
-                      <div className="flex gap-2">
-                        <button onClick={updateTrackName} className="bg-[#4da8ab] text-white px-4 py-1 rounded-full text-xs font-bold shadow-md hover:bg-[#3d8b8d]">حفظ</button>
-                        <button onClick={() => setIsEditingName(false)} className="bg-slate-200 text-slate-600 px-4 py-1 rounded-full text-xs font-bold hover:bg-slate-300">إلغاء</button>
-                      </div>
                     </div>
                   ) : (
                     <div className="group relative inline-block">
                       <h1 
-                        className="text-4xl font-bold text-slate-800 tracking-tight cursor-pointer hover:text-[#4da8ab] transition-colors flex items-center justify-center gap-4"
-                        onClick={startEditingName}
+                        className="text-2xl md:text-4xl font-bold text-slate-800 tracking-tight cursor-pointer hover:text-[#4da8ab] transition-colors flex items-center justify-center gap-3"
+                        onClick={() => { setEditingNameValue(currentTrack.name); setIsEditingName(true); }}
                       >
                         {currentTrack.name}
-                        <button className="opacity-0 group-hover:opacity-100 transition-opacity text-[#4da8ab]">
-                          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
+                        <svg className="w-5 h-5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                       </h1>
                     </div>
                   )}
-                  <p className="text-[#4da8ab] text-lg mt-1 font-medium">{currentTrack.artist}</p>
+                  <p className="text-[#4da8ab] text-sm md:text-lg mt-1 font-medium">{currentTrack.artist}</p>
                 </div>
               </div>
 
-              <div className="max-w-2xl mx-auto w-full pb-32">
+              <div className="max-w-2xl mx-auto w-full">
                 <TimestampManager 
                   timestamps={currentTrack.timestamps} 
                   onRemove={removeTimestamp}
@@ -228,17 +220,15 @@ const App: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center space-y-8">
-              <div className="relative">
-                 <div className="w-48 h-48 rounded-full bg-white shadow-2xl flex items-center justify-center border-2 border-[#4da8ab]/10">
-                    <svg className="w-24 h-24 text-[#4da8ab]/30" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                    </svg>
-                 </div>
+            <div className="h-full flex flex-col items-center justify-center space-y-8 px-6">
+              <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-white shadow-2xl flex items-center justify-center border-2 border-[#4da8ab]/10">
+                <svg className="w-16 h-16 md:w-24 md:h-24 text-[#4da8ab]/30" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+                </svg>
               </div>
               <div className="text-center">
-                <h2 className="text-3xl font-bold text-slate-800">أهلاً بك في ترانيم</h2>
-                <p className="mt-3 text-slate-500 max-w-xs mx-auto">ابدأ برفع ملفاتك الصوتية واستمتع بتجربة استماع فريدة وهادئة</p>
+                <h2 className="text-2xl md:text-3xl font-bold text-slate-800">أهلاً بك في ترانيم</h2>
+                <p className="mt-3 text-slate-500 max-w-xs mx-auto text-sm md:text-base">ابدأ برفع ملفاتك الصوتية واستمتع بتجربة استماع فريدة وهادئة</p>
               </div>
             </div>
           )}
