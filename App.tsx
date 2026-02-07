@@ -5,6 +5,59 @@ import Sidebar from './components/Sidebar';
 import Player from './components/Player';
 import TimestampManager from './components/TimestampManager';
 
+// --- IndexedDB Logic ---
+const DB_NAME = 'TraneemDB';
+const STORE_NAME = 'tracks';
+
+const initDB = (): Promise<IDBDatabase> => {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, 1);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+};
+
+const saveTrackToDB = async (track: any): Promise<void> => {
+  const db = await initDB();
+  // Fix: Native IDBTransaction does not have a 'complete' property. 
+  // Use 'oncomplete' and 'onerror' handlers within a Promise.
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.objectStore(STORE_NAME).put(track);
+  });
+};
+
+const deleteTrackFromDB = async (id: string): Promise<void> => {
+  const db = await initDB();
+  // Fix: Native IDBTransaction does not have a 'complete' property. 
+  // Use 'oncomplete' and 'onerror' handlers within a Promise.
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error);
+    tx.objectStore(STORE_NAME).delete(id);
+  });
+};
+
+const getAllTracksFromDB = async (): Promise<any[]> => {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const request = tx.objectStore(STORE_NAME).getAll();
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(tx.error);
+  });
+};
+// -----------------------
+
 const App: React.FC = () => {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [currentTrackIndex, setCurrentTrackIndex] = useState<number | null>(null);
@@ -21,6 +74,21 @@ const App: React.FC = () => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const currentTrack = currentTrackIndex !== null ? tracks[currentTrackIndex] : null;
+
+  // التحميل الأولي من قاعدة البيانات
+  useEffect(() => {
+    const loadData = async () => {
+      const savedTracks = await getAllTracksFromDB();
+      const tracksWithUrls = savedTracks.map(t => ({
+        ...t,
+        url: URL.createObjectURL(t.fileBlob),
+        coverUrl: t.coverBlob ? URL.createObjectURL(t.coverBlob) : t.coverUrl
+      }));
+      setTracks(tracksWithUrls);
+      if (tracksWithUrls.length > 0) setCurrentTrackIndex(0);
+    };
+    loadData();
+  }, []);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -42,7 +110,11 @@ const App: React.FC = () => {
 
     const onLoadedMetadata = () => {
       if (audio && currentTrackIndex !== null) {
-        setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? { ...t, duration: audio.duration } : t));
+        setTracks(prev => {
+          const updated = prev.map((t, idx) => idx === currentTrackIndex ? { ...t, duration: audio.duration } : t);
+          // لا نحفظ المدة في DB هنا لأنها بيانات يمكن حسابها، لكن يمكن حفظها للسرعة
+          return updated;
+        });
         audio.playbackRate = playerState.playbackRate;
       }
     };
@@ -86,39 +158,39 @@ const App: React.FC = () => {
   };
 
   const handleRateChange = (rate: number) => {
-    if (audioRef.current) {
-      audioRef.current.playbackRate = rate;
-    }
+    if (audioRef.current) audioRef.current.playbackRate = rate;
     setPlayerState(prev => ({ ...prev, playbackRate: rate }));
   };
 
   const handleToggleFavorite = () => {
-    if (currentTrackIndex === null) return;
-    setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? { ...t, isFavorite: !t.isFavorite } : t));
+    if (currentTrackIndex === null || !currentTrack) return;
+    const updatedTrack = { ...currentTrack, isFavorite: !currentTrack.isFavorite };
+    setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? updatedTrack : t));
+    saveTrackToDB(updatedTrack);
   };
 
   const handleUpdateName = () => {
     if (currentTrackIndex === null || !currentTrack) return;
     const newName = prompt("تعديل اسم المقطع:", currentTrack.name);
     if (newName && newName.trim() !== "") {
-      setTracks(prev => prev.map((t, idx) => 
-        idx === currentTrackIndex ? { ...t, name: newName.trim() } : t
-      ));
+      const updatedTrack = { ...currentTrack, name: newName.trim() };
+      setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? updatedTrack : t));
+      saveTrackToDB(updatedTrack);
     }
   };
 
   const handleUpdateCover = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && currentTrackIndex !== null) {
+    if (file && currentTrackIndex !== null && currentTrack) {
       const newCoverUrl = URL.createObjectURL(file);
-      setTracks(prev => prev.map((t, idx) => 
-        idx === currentTrackIndex ? { ...t, coverUrl: newCoverUrl } : t
-      ));
+      const updatedTrack = { ...currentTrack, coverUrl: newCoverUrl, coverBlob: file };
+      setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? updatedTrack : t));
+      saveTrackToDB(updatedTrack);
     }
   };
 
   const handleAddTimestamp = () => {
-    if (currentTrackIndex === null || !audioRef.current) return;
+    if (currentTrackIndex === null || !audioRef.current || !currentTrack) return;
     const time = audioRef.current.currentTime;
     const label = prompt("وصف العلامة:") || `علامة زمنية`;
     const newTimestamp: Timestamp = {
@@ -126,31 +198,49 @@ const App: React.FC = () => {
       time,
       label
     };
-    setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? { ...t, timestamps: [...t.timestamps, newTimestamp] } : t));
+    const updatedTrack = { ...currentTrack, timestamps: [...currentTrack.timestamps, newTimestamp] };
+    setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? updatedTrack : t));
+    saveTrackToDB(updatedTrack);
   };
 
   const handleRemoveTimestamp = (timestampId: string) => {
-    if (currentTrackIndex === null) return;
-    setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? { ...t, timestamps: t.timestamps.filter(ts => ts.id !== timestampId) } : t));
+    if (currentTrackIndex === null || !currentTrack) return;
+    const updatedTrack = { ...currentTrack, timestamps: currentTrack.timestamps.filter(ts => ts.id !== timestampId) };
+    setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? updatedTrack : t));
+    saveTrackToDB(updatedTrack);
   };
 
   const addTrack = async (file: File) => {
     const name = file.name.replace(/\.[^/.]+$/, "");
-    const newTrack: Track = {
-      id: Math.random().toString(36).substr(2, 9),
+    const id = Math.random().toString(36).substr(2, 9);
+    const newTrack: any = {
+      id,
       name,
       artist: "",
       url: URL.createObjectURL(file),
-      coverUrl: `https://picsum.photos/seed/${Math.random()}/600/600`,
+      coverUrl: `https://picsum.photos/seed/${id}/600/600`,
       isFavorite: false,
       timestamps: [],
       duration: 0,
       playbackRate: 1,
+      fileBlob: file, // حفظ الملف كـ Blob
     };
+    
+    await saveTrackToDB(newTrack);
     setTracks(prev => {
       const updated = [...prev, newTrack];
       setCurrentTrackIndex(updated.length - 1);
       return updated;
+    });
+  };
+
+  const removeTrack = async (id: string) => {
+    await deleteTrackFromDB(id);
+    setTracks(prev => {
+      const newTracks = prev.filter(t => t.id !== id);
+      if (newTracks.length === 0) setCurrentTrackIndex(null);
+      else if (currentTrackIndex !== null && currentTrackIndex >= newTracks.length) setCurrentTrackIndex(newTracks.length - 1);
+      return newTracks;
     });
   };
 
@@ -160,19 +250,17 @@ const App: React.FC = () => {
         <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-[#4da8ab] active:scale-95 transition-transform">
           <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
-        <h1 className="text-xl font-black text-[#4da8ab]">ترانيم</h1>
+        <div className="flex flex-col items-center">
+          <h1 className="text-xl font-black text-[#4da8ab]">ترانيم</h1>
+          <span className="text-[8px] font-bold text-slate-400">يعمل بدون إنترنت</span>
+        </div>
         <div className="w-10"></div>
       </header>
 
       <div className="flex-1 flex overflow-hidden relative">
         <Sidebar 
           onImport={addTrack} 
-          onRemove={(id) => setTracks(prev => {
-            const newTracks = prev.filter(t => t.id !== id);
-            if (newTracks.length === 0) setCurrentTrackIndex(null);
-            else if (currentTrackIndex !== null && currentTrackIndex >= newTracks.length) setCurrentTrackIndex(newTracks.length - 1);
-            return newTracks;
-          })}
+          onRemove={removeTrack}
           tracks={tracks} 
           currentId={currentTrack?.id || null} 
           onSelect={setCurrentTrackIndex}
@@ -181,12 +269,10 @@ const App: React.FC = () => {
         />
         
         <main className="flex-1 overflow-y-auto scroll-container bg-transparent relative z-0">
-          {/* الحاوية المركزية مع هوامش كبيرة جداً في الأسفل لضمان التمرير */}
           <div className="px-4 py-8 md:p-12 max-w-4xl mx-auto w-full flex flex-col items-center">
             {currentTrack ? (
               <div className="w-full flex flex-col items-center space-y-8 md:space-y-12 animate-in fade-in duration-500">
                 
-                {/* منطقة الغلاف والعنوان - تقليل الارتفاع في الموبايل */}
                 <div className="flex flex-col items-center space-y-4 md:space-y-6 w-full shrink-0">
                   <div className="relative group w-full max-w-[180px] md:max-w-xs lg:max-w-sm">
                     <div className="relative aspect-square w-full overflow-hidden rounded-[28px] md:rounded-[48px] shadow-2xl border-[3px] md:border-[5px] border-white group-hover:scale-[1.01] transition-all duration-500">
@@ -211,7 +297,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* قائمة العلامات الزمنية - جعلها جزءاً من التمرير الطبيعي */}
                 <div className="w-full max-w-2xl px-2">
                   <TimestampManager 
                     timestamps={currentTrack.timestamps} 
@@ -221,7 +306,6 @@ const App: React.FC = () => {
                   />
                 </div>
 
-                {/* عنصر مسافة فارغة في الأسفل لضمان تخطي المحتوى لمكان المشغل */}
                 <div className="h-48 md:h-64 shrink-0 w-full" aria-hidden="true" />
               </div>
             ) : (
@@ -230,13 +314,13 @@ const App: React.FC = () => {
                   <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                 </div>
                 <h2 className="text-lg font-black text-slate-800">مكتبتك خالية</h2>
+                <p className="text-xs">سيتم حفظ جميع ألحانك محلياً على جهازك</p>
               </div>
             )}
           </div>
         </main>
       </div>
 
-      {/* المشغل العائم - مع ضمان عدم تغطيته لمناطق التفاعل بالخطأ */}
       <footer className="fixed bottom-0 left-0 right-0 z-[50] p-4 md:p-8 pointer-events-none mb-[env(safe-area-inset-bottom,0px)]">
         <audio key={currentTrack?.url} ref={audioRef} src={currentTrack?.url} className="hidden" preload="auto" crossOrigin="anonymous" />
         <div className="max-w-3xl mx-auto bg-white/95 backdrop-blur-3xl border border-white/50 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.3)] rounded-[32px] pointer-events-auto overflow-hidden">
