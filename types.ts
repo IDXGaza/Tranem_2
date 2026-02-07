@@ -22,4 +22,5 @@ export interface PlayerState {
   currentTime: number;
   volume: number;
   playbackRate: number;
+  isLoading: boolean;
 }
