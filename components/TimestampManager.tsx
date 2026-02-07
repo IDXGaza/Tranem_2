@@ -18,51 +18,53 @@ const TimestampManager: React.FC<TimestampManagerProps> = ({
   timestamps, onRemove, onSeek 
 }) => {
   return (
-    <div className="bg-white/40 rounded-[28px] md:rounded-[40px] p-5 md:p-8 border border-white/80 shadow-sm backdrop-blur-md">
-      <div className="flex items-center justify-between mb-5 md:mb-8">
-        <h3 className="font-bold text-base md:text-xl text-slate-800">العلامات المحفوظة</h3>
-        <span className="bg-[#4da8ab] text-white text-[9px] md:text-[10px] font-bold px-3 py-1 rounded-full shadow-sm">
+    <div className="w-full flex flex-col space-y-4">
+      <div className="flex items-center justify-between px-2">
+        <h3 className="font-black text-slate-800 text-lg md:text-xl">العلامات الزمنية</h3>
+        <span className="text-[10px] font-black bg-[#4da8ab]/10 text-[#4da8ab] px-3 py-1 rounded-full uppercase tracking-widest">
            {toArabicIndic(timestamps.length)} علامات
         </span>
       </div>
 
-      <div className="space-y-2 md:space-y-3 max-h-[250px] md:max-h-[350px] overflow-y-auto scroll-container pr-1">
+      <div className="grid grid-cols-1 gap-2.5">
         {timestamps.length === 0 ? (
-          <div className="py-8 md:py-16 text-center opacity-30">
-            <svg className="w-8 h-8 md:w-12 md:h-12 mx-auto mb-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-            </svg>
-            <p className="text-[10px] md:text-xs">احفظ اللحظات المميزة للعودة إليها</p>
+          <div className="py-12 text-center bg-white/40 border border-dashed border-slate-200 rounded-[24px]">
+            <p className="text-slate-400 text-xs font-bold">لم تضف أي علامات بعد</p>
           </div>
         ) : (
           [...timestamps].sort((a, b) => a.time - b.time).map((ts, index) => (
             <div 
               key={ts.id} 
-              className="flex items-center justify-between p-3 md:p-4 bg-white/60 hover:bg-white rounded-2xl md:rounded-3xl border border-transparent hover:border-slate-100 transition-all group shadow-sm"
+              className="flex items-center gap-4 p-4 bg-white/80 hover:bg-white rounded-[24px] border border-white transition-all shadow-sm hover:shadow-md group"
             >
-              <button 
-                onClick={() => onRemove(ts.id)}
-                className="text-slate-300 hover:text-rose-400 p-1 md:opacity-0 md:group-hover:opacity-100 transition-all"
-              >
-                <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
-              </button>
+              {/* الترتيب */}
+              <div className="w-8 h-8 flex items-center justify-center bg-slate-50 rounded-xl text-slate-300 font-black text-sm">
+                {toArabicIndic(index + 1)}
+              </div>
 
+              {/* التوقيت */}
               <button 
                 onClick={() => onSeek(ts.time)}
-                className="text-sm md:text-xl font-bold tracking-wider text-[#4da8ab] hover:scale-105 transition-transform"
+                className="text-lg md:text-xl font-black text-[#4da8ab] tabular-nums hover:scale-110 transition-transform px-2"
                 style={{ direction: 'ltr' }}
               >
                 {toArabicIndic(Math.floor(ts.time / 60)).padStart(2, '٠')}:
                 {toArabicIndic(Math.floor(ts.time % 60)).padStart(2, '٠')}
               </button>
 
-              <div className="flex items-center gap-2 md:gap-3">
-                 <span className="text-[8px] md:text-[10px] font-black text-slate-400 bg-slate-50 px-2 py-1 rounded-lg truncate max-w-[80px] md:max-w-[150px]">
-                    {ts.label}
-                 </span>
-                 <span className="text-base md:text-xl font-black text-slate-200">
-                    {toArabicIndic(index + 1)}
-                 </span>
+              {/* الوصف */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs md:text-sm font-bold text-slate-600 truncate">{ts.label}</p>
+              </div>
+
+              {/* أزرار التحكم */}
+              <div className="flex items-center gap-1 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
+                <button 
+                  onClick={() => onRemove(ts.id)}
+                  className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
               </div>
             </div>
           ))
