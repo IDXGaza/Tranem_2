@@ -181,41 +181,45 @@ const App: React.FC = () => {
         />
         
         <main className="flex-1 overflow-y-auto scroll-container bg-transparent relative z-0">
-          <div className="p-4 md:p-8 lg:p-12 max-w-4xl mx-auto w-full pb-60">
+          <div className="p-4 md:p-8 lg:p-12 max-w-4xl mx-auto w-full flex flex-col items-center pb-80 md:pb-96">
             {currentTrack ? (
-              <div className="flex flex-col items-center space-y-8 animate-in fade-in duration-500">
-                <div className="relative group w-full max-w-[280px] md:max-w-md">
-                  {loadError && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-center p-6 bg-white/90 backdrop-blur-md rounded-[40px] border border-rose-100 shadow-xl text-center">
-                      <div>
-                        <p className="text-xs font-bold text-rose-500 mb-4">{loadError}</p>
-                        <button onClick={() => audioRef.current?.load()} className="text-[10px] bg-rose-50 text-rose-500 px-4 py-2 rounded-full font-black">إعادة تحميل</button>
+              <div className="w-full flex flex-col items-center space-y-6 md:space-y-10 animate-in fade-in duration-500">
+                {/* منطقة الغلاف والعنوان */}
+                <div className="flex flex-col items-center space-y-4 md:space-y-6 w-full">
+                  <div className="relative group w-full max-w-[200px] md:max-w-xs lg:max-w-sm">
+                    {loadError && (
+                      <div className="absolute inset-0 z-30 flex items-center justify-center p-6 bg-white/90 backdrop-blur-md rounded-[32px] border border-rose-100 shadow-xl text-center">
+                        <div className="px-2">
+                          <p className="text-[10px] md:text-xs font-bold text-rose-500 mb-3">{loadError}</p>
+                          <button onClick={() => audioRef.current?.load()} className="text-[10px] bg-rose-50 text-rose-500 px-4 py-1.5 rounded-full font-black">تحديث</button>
+                        </div>
                       </div>
+                    )}
+                    
+                    <div className="relative aspect-square w-full overflow-hidden rounded-[32px] md:rounded-[48px] shadow-2xl border-[4px] border-white group-hover:scale-[1.02] transition-all duration-500">
+                      <img src={currentTrack.coverUrl} className="w-full h-full object-cover" alt="" />
+                      <button 
+                        onClick={() => coverInputRef.current?.click()}
+                        className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                      >
+                        <svg className="w-8 h-8 md:w-12 md:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                      </button>
+                      <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={handleUpdateCover} />
                     </div>
-                  )}
-                  
-                  <div className="relative aspect-square w-full overflow-hidden rounded-[40px] shadow-2xl border-[6px] border-white group-hover:scale-[1.01] transition-all duration-500">
-                    <img src={currentTrack.coverUrl} className="w-full h-full object-cover" alt="" />
-                    <button 
-                      onClick={() => coverInputRef.current?.click()}
-                      className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
-                    >
-                      <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                    </button>
-                    <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={handleUpdateCover} />
                   </div>
-                </div>
-                
-                <div className="text-center w-full group/title relative px-4">
-                  <div className="flex items-center justify-center gap-3">
-                    <h1 className="text-xl md:text-3xl font-black text-slate-800 leading-tight truncate max-w-[90%]">{currentTrack.name}</h1>
-                    <button onClick={handleUpdateName} className="p-2 text-slate-300 hover:text-[#4da8ab] transition-colors md:opacity-0 group-hover/title:opacity-100">
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                    </button>
+                  
+                  <div className="text-center w-full group/title px-4">
+                    <div className="flex items-center justify-center gap-2">
+                      <h1 className="text-lg md:text-2xl font-black text-slate-800 leading-tight truncate max-w-[85%]">{currentTrack.name}</h1>
+                      <button onClick={handleUpdateName} className="p-1.5 text-slate-300 hover:text-[#4da8ab] transition-colors md:opacity-0 group-hover/title:opacity-100">
+                        <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                <div className="w-full max-w-2xl px-2">
+                {/* قائمة العلامات الزمنية */}
+                <div className="w-full max-w-2xl px-2 z-10">
                   <TimestampManager 
                     timestamps={currentTrack.timestamps} 
                     onRemove={handleRemoveTimestamp} 
@@ -226,20 +230,21 @@ const App: React.FC = () => {
               </div>
             ) : (
               <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 text-center px-6 opacity-40">
-                <div className="w-24 h-24 bg-[#4da8ab]/5 rounded-[32px] flex items-center justify-center text-[#4da8ab]/30">
-                  <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                <div className="w-20 h-20 bg-[#4da8ab]/5 rounded-[24px] flex items-center justify-center text-[#4da8ab]/30">
+                  <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                 </div>
-                <h2 className="text-xl font-black text-slate-800">مكتبتك خالية</h2>
-                <p className="text-sm max-w-xs leading-relaxed">استورد ألحانك المفضلة لتبدأ تجربة ترانيم</p>
+                <h2 className="text-lg font-black text-slate-800">مكتبتك خالية</h2>
+                <p className="text-xs max-w-xs leading-relaxed">استورد ألحانك المفضلة لتبدأ تجربة ترانيم</p>
               </div>
             )}
           </div>
         </main>
       </div>
 
+      {/* منطقة المشغل العائم في الأسفل */}
       <footer className="fixed bottom-0 left-0 right-0 z-[50] p-4 md:p-8 pointer-events-none mb-[env(safe-area-inset-bottom,0px)]">
         <audio key={currentTrack?.url} ref={audioRef} src={currentTrack?.url} className="hidden" preload="auto" crossOrigin="anonymous" />
-        <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-3xl border border-white/50 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] rounded-[32px] pointer-events-auto">
+        <div className="max-w-3xl mx-auto bg-white/95 backdrop-blur-3xl border border-white/50 shadow-[0_24px_48px_-8px_rgba(0,0,0,0.2)] rounded-[32px] pointer-events-auto">
           <Player 
             track={currentTrack} 
             state={playerState} 
