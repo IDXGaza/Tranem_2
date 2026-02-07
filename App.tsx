@@ -52,7 +52,7 @@ const App: React.FC = () => {
         audioRef.current?.play().catch(e => console.error("Playback error:", e));
       }
       setIsEditingName(false);
-      setIsSidebarOpen(false); // Close sidebar on mobile after selection
+      setIsSidebarOpen(false);
     }
   }, [currentTrack?.id]);
 
@@ -141,13 +141,13 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-[#f8fafb] text-slate-700 overflow-hidden font-cairo watercolor-bg">
+    <div className="flex flex-col md:flex-row h-screen h-[100dvh] bg-[#f8fafb] text-slate-700 overflow-hidden font-cairo watercolor-bg relative">
       {/* Mobile Header */}
-      <header className="md:hidden flex items-center justify-between p-4 bg-white border-b border-slate-100 z-50">
+      <header className="md:hidden flex items-center justify-between p-4 bg-white/80 backdrop-blur-md border-b border-slate-100 z-40">
         <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-[#4da8ab]">
-          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
-        <h1 className="text-xl font-bold text-slate-800">ترانيم</h1>
+        <h1 className="text-lg font-bold text-slate-800">ترانيم</h1>
         <div className="w-10"></div>
       </header>
 
@@ -161,16 +161,16 @@ const App: React.FC = () => {
       />
       
       <main className="flex-1 flex flex-col relative overflow-hidden h-full">
-        <div className="flex-1 overflow-y-auto p-6 md:p-12 pb-48">
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 lg:p-12 pb-44 md:pb-48">
           {currentTrack ? (
-            <div className="max-w-4xl mx-auto space-y-8 md:space-y-12">
+            <div className="max-w-4xl mx-auto space-y-6 md:space-y-12">
               <div className="flex flex-col items-center">
-                <div className="relative p-4 md:p-8 w-full max-w-[240px] md:max-w-sm">
+                <div className="relative p-2 md:p-8 w-full max-w-[200px] md:max-w-xs lg:max-w-sm">
                   <div className="absolute inset-0 bg-[#4da8ab]/10 rounded-full blur-3xl transform scale-110"></div>
-                  <div className="relative group aspect-square w-full overflow-hidden rounded-[30px] md:rounded-[40px] shadow-xl shadow-[#4da8ab]/20 border-4 border-white">
+                  <div className="relative group aspect-square w-full overflow-hidden rounded-[24px] md:rounded-[40px] shadow-2xl border-4 border-white">
                     <img src={currentTrack.coverUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt={currentTrack.name} />
                     <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <label className="bg-white/90 px-4 md:px-6 py-2 rounded-full text-xs md:text-sm font-bold cursor-pointer hover:bg-white transition-all text-[#4da8ab]">
+                      <label className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold cursor-pointer hover:bg-white transition-all text-[#4da8ab]">
                         تغيير الغلاف
                         <input 
                           type="file" 
@@ -183,30 +183,30 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="mt-6 text-center w-full max-w-2xl px-4">
+                <div className="mt-6 text-center w-full max-w-2xl px-2">
                   {isEditingName ? (
-                    <div className="flex flex-col items-center gap-4">
+                    <div className="flex flex-col items-center">
                       <input
                         type="text"
                         value={editingNameValue}
                         onChange={(e) => setEditingNameValue(e.target.value)}
                         onBlur={updateTrackName}
                         autoFocus
-                        className="w-full bg-white border-2 border-[#4da8ab] rounded-2xl px-4 py-2 text-xl font-bold text-slate-800 text-center focus:outline-none"
+                        className="w-full bg-white border-2 border-[#4da8ab] rounded-xl px-4 py-2 text-lg md:text-2xl font-bold text-slate-800 text-center focus:outline-none"
                       />
                     </div>
                   ) : (
-                    <div className="group relative inline-block">
+                    <div className="inline-block max-w-full">
                       <h1 
-                        className="text-2xl md:text-4xl font-bold text-slate-800 tracking-tight cursor-pointer hover:text-[#4da8ab] transition-colors flex items-center justify-center gap-3"
+                        className="text-xl md:text-3xl lg:text-4xl font-bold text-slate-800 tracking-tight cursor-pointer hover:text-[#4da8ab] transition-colors flex items-center justify-center gap-2 break-words"
                         onClick={() => { setEditingNameValue(currentTrack.name); setIsEditingName(true); }}
                       >
-                        {currentTrack.name}
-                        <svg className="w-5 h-5 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        <span className="line-clamp-2">{currentTrack.name}</span>
+                        <svg className="w-4 h-4 md:w-5 md:h-5 opacity-40 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                       </h1>
                     </div>
                   )}
-                  <p className="text-[#4da8ab] text-sm md:text-lg mt-1 font-medium">{currentTrack.artist}</p>
+                  <p className="text-[#4da8ab] text-xs md:text-base mt-1 font-medium opacity-80">{currentTrack.artist}</p>
                 </div>
               </div>
 
@@ -220,15 +220,15 @@ const App: React.FC = () => {
               </div>
             </div>
           ) : (
-            <div className="h-full flex flex-col items-center justify-center space-y-8 px-6">
-              <div className="w-32 h-32 md:w-48 md:h-48 rounded-full bg-white shadow-2xl flex items-center justify-center border-2 border-[#4da8ab]/10">
-                <svg className="w-16 h-16 md:w-24 md:h-24 text-[#4da8ab]/30" fill="currentColor" viewBox="0 0 24 24">
+            <div className="h-full flex flex-col items-center justify-center space-y-6 px-4">
+              <div className="w-24 h-24 md:w-40 md:h-40 rounded-full bg-white shadow-xl flex items-center justify-center border-2 border-[#4da8ab]/5">
+                <svg className="w-12 h-12 md:w-20 md:h-20 text-[#4da8ab]/20" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
                 </svg>
               </div>
               <div className="text-center">
-                <h2 className="text-2xl md:text-3xl font-bold text-slate-800">أهلاً بك في ترانيم</h2>
-                <p className="mt-3 text-slate-500 max-w-xs mx-auto text-sm md:text-base">ابدأ برفع ملفاتك الصوتية واستمتع بتجربة استماع فريدة وهادئة</p>
+                <h2 className="text-xl md:text-2xl font-bold text-slate-800">أهلاً بك في ترانيم</h2>
+                <p className="mt-2 text-slate-500 max-w-[240px] mx-auto text-xs md:text-sm">ابدأ برفع ملفاتك الصوتية واستمتع بتجربة استماع هادئة</p>
               </div>
             </div>
           )}
@@ -236,16 +236,18 @@ const App: React.FC = () => {
 
         <audio ref={audioRef} src={currentTrack?.url} className="hidden" />
 
-        <Player 
-          track={currentTrack} 
-          state={playerState} 
-          onPlayPause={handlePlayPause}
-          onSeek={handleSeek}
-          onSkip={handleSkip}
-          onRateChange={handleRateChange}
-          onToggleFavorite={() => currentTrack && toggleFavorite(currentTrack.id)}
-          onAddTimestamp={addTimestamp}
-        />
+        <div className="absolute bottom-0 left-0 right-0 z-50">
+          <Player 
+            track={currentTrack} 
+            state={playerState} 
+            onPlayPause={handlePlayPause}
+            onSeek={handleSeek}
+            onSkip={handleSkip}
+            onRateChange={handleRateChange}
+            onToggleFavorite={() => currentTrack && toggleFavorite(currentTrack.id)}
+            onAddTimestamp={addTimestamp}
+          />
+        </div>
       </main>
     </div>
   );
