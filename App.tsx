@@ -180,10 +180,9 @@ const App: React.FC = () => {
         />
         
         <main className="flex-1 overflow-y-auto scroll-container bg-transparent relative">
-          <div className="p-4 md:p-10 lg:p-16 max-w-5xl mx-auto w-full">
+          <div className="p-4 md:p-10 lg:p-16 max-w-5xl mx-auto w-full pb-32">
             {currentTrack ? (
               <div className="flex flex-col items-center space-y-8 pb-12">
-                {/* Cover */}
                 <div className="relative p-2 w-full max-w-[220px] md:max-w-sm">
                   <div className="absolute inset-0 bg-[#4da8ab]/10 rounded-full blur-[60px] transform scale-125"></div>
                   <div className="relative aspect-square w-full overflow-hidden rounded-[32px] md:rounded-[48px] shadow-2xl border-4 border-white">
@@ -195,7 +194,6 @@ const App: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* Info */}
                 <div className="text-center w-full px-2">
                   {isEditingName ? (
                     <input
@@ -225,10 +223,21 @@ const App: React.FC = () => {
         </main>
       </div>
 
-      {/* Floating Player - FIXED AT BOTTOM with padding for APK */}
-      <footer className="shrink-0 z-[50] bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,20px)]">
+      {/* Floating Player - RAISED UP to avoid clipping */}
+      <footer className="fixed bottom-0 left-0 right-0 z-[50] p-4 md:p-6 lg:p-8 pointer-events-none">
         <audio ref={audioRef} src={currentTrack?.url} className="hidden" preload="auto" />
-        <Player track={currentTrack} state={playerState} onPlayPause={handlePlayPause} onSeek={handleSeek} onSkip={handleSkip} onRateChange={handleRateChange} onToggleFavorite={() => currentTrack && toggleFavorite(currentTrack.id)} onAddTimestamp={addTimestamp} />
+        <div className="max-w-4xl mx-auto bg-white/95 backdrop-blur-xl border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.1)] rounded-[32px] pointer-events-auto overflow-hidden">
+          <Player 
+            track={currentTrack} 
+            state={playerState} 
+            onPlayPause={handlePlayPause} 
+            onSeek={handleSeek} 
+            onSkip={handleSkip} 
+            onRateChange={handleRateChange} 
+            onToggleFavorite={() => currentTrack && toggleFavorite(currentTrack.id)} 
+            onAddTimestamp={addTimestamp} 
+          />
+        </div>
       </footer>
     </div>
   );
