@@ -34,30 +34,22 @@ const App: React.FC = () => {
         ));
       }
     };
-    
-    const onWaiting = () => console.log("Audio is buffering...");
-    const onError = (e: any) => console.error("Audio error:", e);
 
     audio.addEventListener('timeupdate', updateTime);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('loadedmetadata', onLoadedMetadata);
-    audio.addEventListener('waiting', onWaiting);
-    audio.addEventListener('error', onError);
 
     return () => {
       audio.removeEventListener('timeupdate', updateTime);
       audio.removeEventListener('ended', onEnded);
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
-      audio.removeEventListener('waiting', onWaiting);
-      audio.removeEventListener('error', onError);
     };
   }, [currentTrackIndex]);
 
   useEffect(() => {
     if (currentTrack && audioRef.current) {
-      audioRef.current.playbackRate = playerState.playbackRate;
       if (playerState.isPlaying) {
-        audioRef.current.play().catch(e => console.error("Playback start error:", e));
+        audioRef.current.play().catch(e => console.error("Playback error:", e));
       }
       setIsEditingName(false);
       setIsSidebarOpen(false);
@@ -69,7 +61,7 @@ const App: React.FC = () => {
     if (playerState.isPlaying) {
       audioRef.current.pause();
     } else {
-      audioRef.current.play().catch(e => console.error("Playback toggle error:", e));
+      audioRef.current.play().catch(e => console.error("Playback error:", e));
     }
     setPlayerState(prev => ({ ...prev, isPlaying: !prev.isPlaying }));
   };
@@ -83,8 +75,7 @@ const App: React.FC = () => {
 
   const handleSkip = (seconds: number) => {
     if (!audioRef.current) return;
-    const newTime = audioRef.current.currentTime + seconds;
-    handleSeek(newTime);
+    handleSeek(audioRef.current.currentTime + seconds);
   };
 
   const handleRateChange = (rate: number) => {
@@ -110,27 +101,20 @@ const App: React.FC = () => {
   };
 
   const removeTrack = (id: string) => {
-    const trackToDelete = tracks.find(t => t.id === id);
-    if (trackToDelete) {
-      // تحرير الذاكرة
-      URL.revokeObjectURL(trackToDelete.url);
-    }
+    const trackToRemove = tracks.find(t => t.id === id);
+    if (trackToRemove) URL.revokeObjectURL(trackToRemove.url);
 
     setTracks(prev => {
-      const filteredTracks = prev.filter(t => t.id !== id);
-      
-      // إذا كان الملف المحذوف هو المشغل حالياً
+      const newTracks = prev.filter(t => t.id !== id);
       if (currentTrack?.id === id) {
         setCurrentTrackIndex(null);
         setPlayerState(ps => ({ ...ps, isPlaying: false, currentTime: 0 }));
       } else if (currentTrackIndex !== null) {
-        // تحديث الفهرس الحالي لضمان عدم حدوث إزاحة خاطئة
         const currentId = prev[currentTrackIndex].id;
-        const newIndex = filteredTracks.findIndex(t => t.id === currentId);
-        setCurrentTrackIndex(newIndex !== -1 ? newIndex : null);
+        const newIdx = newTracks.findIndex(t => t.id === currentId);
+        setCurrentTrackIndex(newIdx !== -1 ? newIdx : null);
       }
-      
-      return filteredTracks;
+      return newTracks;
     });
   };
 
@@ -155,12 +139,11 @@ const App: React.FC = () => {
   };
 
   const addTimestamp = () => {
-    if (currentTrackIndex === null || !currentTrack || !audioRef.current) return;
-    const currentTimeAtClick = audioRef.current.currentTime;
+    if (currentTrackIndex === null || !audioRef.current) return;
     const newTs: Timestamp = {
       id: Math.random().toString(36).substr(2, 9),
-      time: currentTimeAtClick,
-      label: `علامة ${currentTrack.timestamps.length + 1}`
+      time: audioRef.current.currentTime,
+      label: `علامة ${currentTrack?.timestamps.length || 0 + 1}`
     };
     setTracks(prev => prev.map((t, idx) => 
       idx === currentTrackIndex ? { ...t, timestamps: [...t.timestamps, newTs] } : t
@@ -175,16 +158,13 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen h-[100dvh] bg-[#f8fafb] text-slate-700 overflow-hidden font-cairo watercolor-bg relative no-select">
-      
-      <header className="flex items-center justify-between p-4 bg-white/90 backdrop-blur-md border-b border-slate-100 shrink-0 z-40 lg:hidden">
-        <button 
-          onClick={() => setIsSidebarOpen(true)} 
-          className="p-2 text-[#4da8ab] hover:bg-slate-50 rounded-xl"
-        >
+    <div className="flex flex-col h-screen h-[100dvh] bg-[#f8fafb] text-slate-700 overflow-hidden font-cairo watercolor-bg relative">
+      {/* Header Mobile */}
+      <header className="flex lg:hidden items-center justify-between p-4 bg-white/90 backdrop-blur-md border-b border-slate-100 shrink-0 z-40">
+        <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-[#4da8ab]">
           <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
-        <h1 className="text-xl font-bold text-slate-800">ترانيم</h1>
+        <h1 className="text-xl font-bold">ترانيم</h1>
         <div className="w-10"></div>
       </header>
 
@@ -200,88 +180,55 @@ const App: React.FC = () => {
         />
         
         <main className="flex-1 overflow-y-auto scroll-container bg-transparent relative">
-          <div className="p-4 md:p-10 lg:p-16 max-w-5xl mx-auto w-full min-h-full">
+          <div className="p-4 md:p-10 lg:p-16 max-w-5xl mx-auto w-full">
             {currentTrack ? (
               <div className="flex flex-col items-center space-y-8 pb-12">
+                {/* Cover */}
                 <div className="relative p-2 w-full max-w-[220px] md:max-w-sm">
                   <div className="absolute inset-0 bg-[#4da8ab]/10 rounded-full blur-[60px] transform scale-125"></div>
                   <div className="relative aspect-square w-full overflow-hidden rounded-[32px] md:rounded-[48px] shadow-2xl border-4 border-white">
                     <img src={currentTrack.coverUrl} className="w-full h-full object-cover" alt="" />
                     <label className="absolute inset-0 bg-black/10 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer">
                       <span className="bg-white/90 px-6 py-2 rounded-full text-xs font-bold text-[#4da8ab]">تغيير الغلاف</span>
-                      <input 
-                        type="file" 
-                        className="hidden" 
-                        accept="image/*" 
-                        onChange={(e) => e.target.files?.[0] && updateCover(currentTrack.id, e.target.files[0])} 
-                      />
+                      <input type="file" className="hidden" accept="image/*" onChange={(e) => e.target.files?.[0] && updateCover(currentTrack.id, e.target.files[0])} />
                     </label>
                   </div>
                 </div>
                 
+                {/* Info */}
                 <div className="text-center w-full px-2">
                   {isEditingName ? (
                     <input
-                      type="text"
-                      value={editingNameValue}
-                      onChange={(e) => setEditingNameValue(e.target.value)}
-                      onBlur={updateTrackName}
-                      autoFocus
-                      className="w-full max-w-lg bg-white border-2 border-[#4da8ab] rounded-2xl px-5 py-3 text-xl font-bold text-slate-800 text-center shadow-lg"
+                      type="text" value={editingNameValue} onChange={(e) => setEditingNameValue(e.target.value)} onBlur={updateTrackName} autoFocus
+                      className="w-full max-w-lg bg-white border-2 border-[#4da8ab] rounded-2xl px-5 py-2 text-xl font-bold text-center shadow-lg"
                     />
                   ) : (
-                    <h1 
-                      className="text-xl md:text-3xl font-bold text-slate-800 tracking-tight cursor-pointer hover:text-[#4da8ab] transition-colors break-all leading-snug px-4 group"
-                      onClick={() => { setEditingNameValue(currentTrack.name); setIsEditingName(true); }}
-                    >
+                    <h1 className="text-xl md:text-3xl font-bold text-slate-800 break-all leading-snug cursor-pointer" onClick={() => { setEditingNameValue(currentTrack.name); setIsEditingName(true); }}>
                       {currentTrack.name}
-                      <svg className="w-4 h-4 inline-block ms-2 opacity-30 group-hover:opacity-100" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      <svg className="w-4 h-4 inline-block ms-2 opacity-20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </h1>
                   )}
                   <p className="text-[#4da8ab] text-sm md:text-base mt-2 font-semibold opacity-70 uppercase tracking-widest">{currentTrack.artist}</p>
                 </div>
 
                 <div className="w-full max-w-2xl">
-                  <TimestampManager 
-                    timestamps={currentTrack.timestamps} 
-                    onRemove={removeTimestamp}
-                    onSeek={handleSeek}
-                    currentTime={playerState.currentTime}
-                  />
+                  <TimestampManager timestamps={currentTrack.timestamps} onRemove={removeTimestamp} onSeek={handleSeek} currentTime={playerState.currentTime} />
                 </div>
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center space-y-10 py-20">
-                <div className="w-24 h-24 md:w-40 md:h-40 rounded-full bg-white shadow-xl flex items-center justify-center border-2 border-[#4da8ab]/5">
-                  <svg className="w-12 h-12 md:w-20 md:h-20 text-[#4da8ab]/10" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
-                  </svg>
-                </div>
-                <h2 className="text-2xl font-bold text-slate-400">ابدأ باستيراد ملف صوتي</h2>
+              <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 text-center">
+                <div className="w-24 h-24 rounded-full bg-white shadow-xl flex items-center justify-center border border-[#4da8ab]/10"><svg className="w-12 h-12 text-[#4da8ab]/20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg></div>
+                <h2 className="text-2xl font-bold text-slate-300">مكتبتك خالية، ابدأ الاستيراد</h2>
               </div>
             )}
           </div>
         </main>
       </div>
 
-      <footer className="shrink-0 z-[50] bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.06)] px-2 md:px-0">
-        <audio 
-          ref={audioRef} 
-          src={currentTrack?.url} 
-          className="hidden" 
-          preload="auto"
-          playsInline
-        />
-        <Player 
-          track={currentTrack} 
-          state={playerState} 
-          onPlayPause={handlePlayPause}
-          onSeek={handleSeek}
-          onSkip={handleSkip}
-          onRateChange={handleRateChange}
-          onToggleFavorite={() => currentTrack && toggleFavorite(currentTrack.id)}
-          onAddTimestamp={addTimestamp}
-        />
+      {/* Floating Player - FIXED AT BOTTOM with padding for APK */}
+      <footer className="shrink-0 z-[50] bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.06)] pb-[env(safe-area-inset-bottom,20px)]">
+        <audio ref={audioRef} src={currentTrack?.url} className="hidden" preload="auto" />
+        <Player track={currentTrack} state={playerState} onPlayPause={handlePlayPause} onSeek={handleSeek} onSkip={handleSkip} onRateChange={handleRateChange} onToggleFavorite={() => currentTrack && toggleFavorite(currentTrack.id)} onAddTimestamp={addTimestamp} />
       </footer>
     </div>
   );

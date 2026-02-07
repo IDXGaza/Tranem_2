@@ -18,28 +18,22 @@
         padding: 0;
         height: 100vh;
         height: 100dvh;
-        overflow: hidden; /* يمنع التمرير على مستوى الصفحة بالكامل */
-        overscroll-behavior-y: none; /* يمنع السحب للتحديث في تطبيقات الويب */
+        overflow: hidden;
+        overscroll-behavior-y: none; /* منع السحب للتحديث في APK */
       }
       .watercolor-bg {
         background: radial-gradient(circle at 10% 20%, rgba(77, 168, 171, 0.05) 0%, transparent 40%),
                     radial-gradient(circle at 90% 80%, rgba(77, 168, 171, 0.08) 0%, transparent 50%);
       }
-      /* تحسين شريط التمرير للمحتوى فقط */
-      .scroll-container::-webkit-scrollbar {
-        width: 4px;
-      }
-      .scroll-container::-webkit-scrollbar-track {
-        background: transparent;
-      }
-      .scroll-container::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 10px;
-      }
-      /* منع اختيار النصوص في الأزرار لراحة المستخدم في التطبيق */
-      button, .no-select {
+      .scroll-container::-webkit-scrollbar { width: 4px; }
+      .scroll-container::-webkit-scrollbar-track { background: transparent; }
+      .scroll-container::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      
+      /* تحسين مناطق اللمس */
+      button, .clickable {
         user-select: none;
         -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
       }
     </style>
   <script type="importmap">
