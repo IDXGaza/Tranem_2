@@ -139,7 +139,7 @@ const App: React.FC = () => {
     const newTrack: Track = {
       id: Math.random().toString(36).substr(2, 9),
       name,
-      artist: "", // تم حذف النبذة التلقائية
+      artist: "",
       url: URL.createObjectURL(file),
       coverUrl: `https://picsum.photos/seed/${Math.random()}/600/600`,
       isFavorite: false,
@@ -181,12 +181,12 @@ const App: React.FC = () => {
         />
         
         <main className="flex-1 overflow-y-auto scroll-container bg-transparent relative z-0">
-          <div className="p-4 md:p-12 lg:p-16 max-w-4xl mx-auto w-full pb-60">
+          <div className="p-4 md:p-8 lg:p-12 max-w-4xl mx-auto w-full pb-60">
             {currentTrack ? (
               <div className="flex flex-col items-center space-y-8 animate-in fade-in duration-500">
                 <div className="relative group w-full max-w-[280px] md:max-w-md">
                   {loadError && (
-                    <div className="absolute inset-0 z-30 flex items-center justify-center p-6 bg-white/90 backdrop-blur-md rounded-[32px] border border-rose-100 shadow-xl text-center">
+                    <div className="absolute inset-0 z-30 flex items-center justify-center p-6 bg-white/90 backdrop-blur-md rounded-[40px] border border-rose-100 shadow-xl text-center">
                       <div>
                         <p className="text-xs font-bold text-rose-500 mb-4">{loadError}</p>
                         <button onClick={() => audioRef.current?.load()} className="text-[10px] bg-rose-50 text-rose-500 px-4 py-2 rounded-full font-black">إعادة تحميل</button>
@@ -194,11 +194,11 @@ const App: React.FC = () => {
                     </div>
                   )}
                   
-                  <div className="relative aspect-square w-full overflow-hidden rounded-[40px] shadow-2xl border-[6px] border-white group-hover:scale-[1.02] transition-transform duration-500">
+                  <div className="relative aspect-square w-full overflow-hidden rounded-[40px] shadow-2xl border-[6px] border-white group-hover:scale-[1.01] transition-all duration-500">
                     <img src={currentTrack.coverUrl} className="w-full h-full object-cover" alt="" />
                     <button 
                       onClick={() => coverInputRef.current?.click()}
-                      className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
+                      className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
                     >
                       <svg className="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </button>
@@ -208,7 +208,7 @@ const App: React.FC = () => {
                 
                 <div className="text-center w-full group/title relative px-4">
                   <div className="flex items-center justify-center gap-3">
-                    <h1 className="text-xl md:text-3xl font-black text-slate-800 leading-tight">{currentTrack.name}</h1>
+                    <h1 className="text-xl md:text-3xl font-black text-slate-800 leading-tight truncate max-w-[90%]">{currentTrack.name}</h1>
                     <button onClick={handleUpdateName} className="p-2 text-slate-300 hover:text-[#4da8ab] transition-colors md:opacity-0 group-hover/title:opacity-100">
                       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </button>
@@ -225,23 +225,21 @@ const App: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="h-[60vh] flex flex-col items-center justify-center space-y-8 text-center px-6">
-                <div className="w-24 h-24 bg-[#4da8ab]/10 rounded-[30px] flex items-center justify-center text-[#4da8ab]">
+              <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 text-center px-6 opacity-40">
+                <div className="w-24 h-24 bg-[#4da8ab]/5 rounded-[32px] flex items-center justify-center text-[#4da8ab]/30">
                   <svg className="w-12 h-12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                 </div>
-                <div className="space-y-2">
-                  <h2 className="text-2xl font-black text-slate-800">مكتبتك خالية</h2>
-                  <p className="text-sm text-slate-400 max-w-xs leading-relaxed">قم باستيراد ملفاتك الصوتية من جهازك لتبدأ في الاستماع وإضافة العلامات.</p>
-                </div>
+                <h2 className="text-xl font-black text-slate-800">مكتبتك خالية</h2>
+                <p className="text-sm max-w-xs leading-relaxed">استورد ألحانك المفضلة لتبدأ تجربة ترانيم</p>
               </div>
             )}
           </div>
         </main>
       </div>
 
-      <footer className="fixed bottom-0 left-0 right-0 z-[50] p-4 md:p-10 pointer-events-none mb-[env(safe-area-inset-bottom,0px)]">
+      <footer className="fixed bottom-0 left-0 right-0 z-[50] p-4 md:p-8 pointer-events-none mb-[env(safe-area-inset-bottom,0px)]">
         <audio key={currentTrack?.url} ref={audioRef} src={currentTrack?.url} className="hidden" preload="auto" crossOrigin="anonymous" />
-        <div className="max-w-3xl mx-auto bg-white/80 backdrop-blur-2xl border border-white/50 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.15)] rounded-[32px] pointer-events-auto overflow-hidden">
+        <div className="max-w-3xl mx-auto bg-white/90 backdrop-blur-3xl border border-white/50 shadow-[0_32px_64px_-12px_rgba(0,0,0,0.2)] rounded-[32px] pointer-events-auto">
           <Player 
             track={currentTrack} 
             state={playerState} 
