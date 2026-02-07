@@ -3,39 +3,40 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>ترانيم - Traneem</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700&display=swap" rel="stylesheet">
     <style>
-      <body style="padding-bottom: 150px !important;">
+      body {
         font-family: 'Cairo', sans-serif;
         background-color: #f8fafb;
         color: #334155;
-        overflow: hidden;
         margin: 0;
         padding: 0;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden; /* يمنع التمرير على مستوى الصفحة بالكامل */
+        overscroll-behavior-y: none; /* يمنع السحب للتحديث في تطبيقات الويب */
       }
       .watercolor-bg {
         background: radial-gradient(circle at 10% 20%, rgba(77, 168, 171, 0.05) 0%, transparent 40%),
                     radial-gradient(circle at 90% 80%, rgba(77, 168, 171, 0.08) 0%, transparent 50%);
       }
-      ::-webkit-scrollbar {
-        width: 6px;
+      /* تحسين شريط التمرير للمحتوى فقط */
+      .scroll-container::-webkit-scrollbar {
+        width: 4px;
       }
-      ::-webkit-scrollbar-track {
+      .scroll-container::-webkit-scrollbar-track {
         background: transparent;
       }
-      ::-webkit-scrollbar-thumb {
+      .scroll-container::-webkit-scrollbar-thumb {
         background: #cbd5e1;
         border-radius: 10px;
       }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
-      }
-      /* منع اختيار النصوص في الأزرار */
+      /* منع اختيار النصوص في الأزرار لراحة المستخدم في التطبيق */
       button, .no-select {
         user-select: none;
         -webkit-tap-highlight-color: transparent;

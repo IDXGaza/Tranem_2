@@ -4,6 +4,7 @@ import { Track } from '../types';
 
 interface SidebarProps {
   onImport: (file: File) => void;
+  onRemove: (id: string) => void;
   tracks: Track[];
   currentId: string | null;
   onSelect: (index: number) => void;
@@ -11,7 +12,7 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onImport, tracks, currentId, onSelect, isOpen, onClose }) => {
+const Sidebar: React.FC<SidebarProps> = ({ onImport, onRemove, tracks, currentId, onSelect, isOpen, onClose }) => {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && file.type.startsWith('audio/')) {
@@ -72,19 +73,26 @@ const Sidebar: React.FC<SidebarProps> = ({ onImport, tracks, currentId, onSelect
               <h3 className="text-[11px] font-black uppercase tracking-[0.25em] text-slate-300 mb-5 px-3">المفضلة</h3>
               <div className="space-y-2">
                 {favorites.map((track) => (
-                  <button
-                    key={track.id}
-                    onClick={() => onSelect(tracks.findIndex(t => t.id === track.id))}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl text-right transition-all group ${
-                      currentId === track.id ? 'bg-[#4da8ab]/10 text-[#4da8ab]' : 'hover:bg-slate-50 text-slate-600'
-                    }`}
-                  >
-                    <img src={track.coverUrl} className="w-12 h-12 rounded-xl object-cover shadow-md shrink-0 border-2 border-white" alt="" />
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate font-bold text-sm break-all">{track.name}</p>
-                      <p className="text-[10px] opacity-60 uppercase font-black mt-1">Lyrical</p>
-                    </div>
-                  </button>
+                  <div key={track.id} className="group flex items-center gap-1">
+                    <button
+                      onClick={() => onSelect(tracks.findIndex(t => t.id === track.id))}
+                      className={`flex-1 flex items-center gap-4 p-4 rounded-2xl text-right transition-all ${
+                        currentId === track.id ? 'bg-[#4da8ab]/10 text-[#4da8ab]' : 'hover:bg-slate-50 text-slate-600'
+                      }`}
+                    >
+                      <img src={track.coverUrl} className="w-12 h-12 rounded-xl object-cover shadow-md shrink-0 border-2 border-white" alt="" />
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate font-bold text-sm break-all">{track.name}</p>
+                        <p className="text-[10px] opacity-60 uppercase font-black mt-1">Lyrical</p>
+                      </div>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onRemove(track.id); }}
+                      className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100 md:group-hover:opacity-100"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>
@@ -99,28 +107,35 @@ const Sidebar: React.FC<SidebarProps> = ({ onImport, tracks, currentId, onSelect
                 </div>
               ) : (
                 tracks.map((track, idx) => (
-                  <button
-                    key={track.id}
-                    onClick={() => onSelect(idx)}
-                    className={`w-full flex items-center gap-4 p-4 rounded-2xl text-right transition-all group ${
-                      currentId === track.id ? 'bg-[#4da8ab]/10 text-[#4da8ab]' : 'hover:bg-slate-50 text-slate-600'
-                    }`}
-                  >
-                    <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 relative overflow-hidden border border-slate-100">
-                      <img src={track.coverUrl} className={`w-full h-full object-cover transition-opacity duration-700 ${currentId === track.id ? 'opacity-20' : 'opacity-100'}`} />
-                      {currentId === track.id && (
-                        <div className="absolute inset-0 flex gap-1 items-center justify-center">
-                          <div className="w-1 h-3 bg-[#4da8ab] rounded-full animate-bounce [animation-duration:0.6s]"></div>
-                          <div className="w-1 h-6 bg-[#4da8ab] rounded-full animate-bounce [animation-duration:0.8s]"></div>
-                          <div className="w-1 h-2 bg-[#4da8ab] rounded-full animate-bounce [animation-duration:0.4s]"></div>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="truncate font-bold text-sm break-all">{track.name}</p>
-                      <p className="text-[10px] opacity-40 uppercase font-black mt-1">Audio Track</p>
-                    </div>
-                  </button>
+                  <div key={track.id} className="group flex items-center gap-1">
+                    <button
+                      onClick={() => onSelect(idx)}
+                      className={`flex-1 flex items-center gap-4 p-4 rounded-2xl text-right transition-all ${
+                        currentId === track.id ? 'bg-[#4da8ab]/10 text-[#4da8ab]' : 'hover:bg-slate-50 text-slate-600'
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center shrink-0 relative overflow-hidden border border-slate-100">
+                        <img src={track.coverUrl} className={`w-full h-full object-cover transition-opacity duration-700 ${currentId === track.id ? 'opacity-20' : 'opacity-100'}`} />
+                        {currentId === track.id && (
+                          <div className="absolute inset-0 flex gap-1 items-center justify-center">
+                            <div className="w-1 h-3 bg-[#4da8ab] rounded-full animate-bounce [animation-duration:0.6s]"></div>
+                            <div className="w-1 h-6 bg-[#4da8ab] rounded-full animate-bounce [animation-duration:0.8s]"></div>
+                            <div className="w-1 h-2 bg-[#4da8ab] rounded-full animate-bounce [animation-duration:0.4s]"></div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="truncate font-bold text-sm break-all">{track.name}</p>
+                        <p className="text-[10px] opacity-40 uppercase font-black mt-1">Audio Track</p>
+                      </div>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); onRemove(track.id); }}
+                      className="p-3 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all opacity-0 group-hover:opacity-100"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
                 ))
               )}
             </div>
