@@ -141,17 +141,19 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen h-[100dvh] bg-[#f8fafb] text-slate-700 overflow-hidden font-cairo watercolor-bg">
-      {/* 1. Header Area (Mobile) */}
-      <header className="md:hidden flex items-center justify-between p-4 bg-white/80 backdrop-blur-md border-b border-slate-100 shrink-0 z-40">
-        <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-[#4da8ab]">
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+    <div className="flex flex-col h-screen h-[100dvh] bg-[#f8fafb] text-slate-700 overflow-hidden font-cairo watercolor-bg relative">
+      {/* Navbar Mobile/Tablet */}
+      <header className="flex items-center justify-between p-4 bg-white/80 backdrop-blur-md border-b border-slate-100 shrink-0 z-40 lg:hidden">
+        <button 
+          onClick={() => setIsSidebarOpen(true)} 
+          className="p-2 text-[#4da8ab] hover:bg-slate-50 rounded-xl transition-colors"
+        >
+          <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
-        <h1 className="text-lg font-bold text-slate-800">ترانيم</h1>
+        <h1 className="text-xl font-bold text-slate-800">ترانيم</h1>
         <div className="w-10"></div>
       </header>
 
-      {/* 2. Top Content Area (Sidebar + Main) */}
       <div className="flex-1 flex overflow-hidden relative">
         <Sidebar 
           onImport={addTrack} 
@@ -162,57 +164,58 @@ const App: React.FC = () => {
           onClose={() => setIsSidebarOpen(false)}
         />
         
-        <main className="flex-1 overflow-y-auto relative">
-          <div className="p-4 md:p-8 lg:p-12 min-h-full">
+        <main className="flex-1 overflow-y-auto relative bg-transparent scroll-smooth">
+          <div className="p-4 md:p-10 lg:p-16 max-w-5xl mx-auto w-full">
             {currentTrack ? (
-              <div className="max-w-4xl mx-auto space-y-8 pb-10">
-                <div className="flex flex-col items-center">
-                  <div className="relative p-2 md:p-8 w-full max-w-[220px] md:max-w-xs lg:max-w-sm">
-                    <div className="absolute inset-0 bg-[#4da8ab]/10 rounded-full blur-3xl transform scale-110"></div>
-                    <div className="relative group aspect-square w-full overflow-hidden rounded-[28px] md:rounded-[40px] shadow-2xl border-4 border-white">
-                      <img src={currentTrack.coverUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" alt="" />
-                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none md:pointer-events-auto">
-                        <label className="bg-white/90 px-4 py-2 rounded-full text-xs font-bold cursor-pointer hover:bg-white transition-all text-[#4da8ab] pointer-events-auto">
-                          تغيير الغلاف
-                          <input 
-                            type="file" 
-                            className="hidden" 
-                            accept="image/*" 
-                            onChange={(e) => e.target.files?.[0] && updateCover(currentTrack.id, e.target.files[0])} 
-                          />
-                        </label>
-                      </div>
+              <div className="flex flex-col items-center space-y-10 pb-40">
+                {/* Cover Image */}
+                <div className="relative p-2 w-full max-w-[240px] md:max-w-sm">
+                  <div className="absolute inset-0 bg-[#4da8ab]/10 rounded-full blur-[60px] transform scale-125"></div>
+                  <div className="relative group aspect-square w-full overflow-hidden rounded-[40px] shadow-2xl border-4 border-white">
+                    <img src={currentTrack.coverUrl} className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" alt="" />
+                    <div className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <label className="bg-white/90 px-6 py-2.5 rounded-full text-sm font-bold cursor-pointer hover:bg-white transition-all text-[#4da8ab] shadow-lg">
+                        تغيير الغلاف
+                        <input 
+                          type="file" 
+                          className="hidden" 
+                          accept="image/*" 
+                          onChange={(e) => e.target.files?.[0] && updateCover(currentTrack.id, e.target.files[0])} 
+                        />
+                      </label>
                     </div>
                   </div>
-                  
-                  <div className="mt-8 text-center w-full max-w-2xl px-4">
-                    {isEditingName ? (
-                      <div className="flex flex-col items-center">
-                        <input
-                          type="text"
-                          value={editingNameValue}
-                          onChange={(e) => setEditingNameValue(e.target.value)}
-                          onBlur={updateTrackName}
-                          autoFocus
-                          className="w-full bg-white border-2 border-[#4da8ab] rounded-xl px-4 py-3 text-lg md:text-2xl font-bold text-slate-800 text-center focus:outline-none shadow-sm"
-                        />
-                      </div>
-                    ) : (
-                      <div className="inline-block max-w-full group">
-                        <h1 
-                          className="text-xl md:text-3xl lg:text-4xl font-bold text-slate-800 tracking-tight cursor-pointer hover:text-[#4da8ab] transition-colors flex items-center justify-center gap-3 break-all md:break-words leading-relaxed"
-                          onClick={() => { setEditingNameValue(currentTrack.name); setIsEditingName(true); }}
-                        >
-                          <span>{currentTrack.name}</span>
-                          <svg className="w-5 h-5 opacity-40 shrink-0 group-hover:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                        </h1>
-                      </div>
-                    )}
-                    <p className="text-[#4da8ab] text-xs md:text-base mt-2 font-medium opacity-80 uppercase tracking-widest">{currentTrack.artist}</p>
-                  </div>
+                </div>
+                
+                {/* Track Info */}
+                <div className="text-center w-full px-4">
+                  {isEditingName ? (
+                    <div className="flex flex-col items-center max-w-lg mx-auto">
+                      <input
+                        type="text"
+                        value={editingNameValue}
+                        onChange={(e) => setEditingNameValue(e.target.value)}
+                        onBlur={updateTrackName}
+                        autoFocus
+                        className="w-full bg-white border-2 border-[#4da8ab] rounded-2xl px-5 py-3 text-xl font-bold text-slate-800 text-center focus:outline-none shadow-xl"
+                      />
+                    </div>
+                  ) : (
+                    <div className="group relative inline-block max-w-full">
+                      <h1 
+                        className="text-2xl md:text-4xl font-bold text-slate-800 tracking-tight cursor-pointer hover:text-[#4da8ab] transition-colors flex items-center justify-center gap-4 break-all leading-snug"
+                        onClick={() => { setEditingNameValue(currentTrack.name); setIsEditingName(true); }}
+                      >
+                        <span className="break-all">{currentTrack.name}</span>
+                        <svg className="w-5 h-5 opacity-30 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      </h1>
+                    </div>
+                  )}
+                  <p className="text-[#4da8ab] text-sm md:text-lg mt-3 font-semibold tracking-widest opacity-80 uppercase">{currentTrack.artist}</p>
                 </div>
 
-                <div className="max-w-2xl mx-auto w-full">
+                {/* Timestamps Section */}
+                <div className="w-full max-w-2xl">
                   <TimestampManager 
                     timestamps={currentTrack.timestamps} 
                     onRemove={removeTimestamp}
@@ -222,15 +225,15 @@ const App: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <div className="h-full flex flex-col items-center justify-center space-y-8 py-20">
-                <div className="w-24 h-24 md:w-44 md:h-44 rounded-full bg-white shadow-2xl flex items-center justify-center border-2 border-[#4da8ab]/5">
-                  <svg className="w-12 h-12 md:w-20 md:h-20 text-[#4da8ab]/10" fill="currentColor" viewBox="0 0 24 24">
+              <div className="h-[60vh] flex flex-col items-center justify-center space-y-10">
+                <div className="w-32 h-32 md:w-52 md:h-52 rounded-full bg-white shadow-2xl flex items-center justify-center border-4 border-[#4da8ab]/5 animate-pulse">
+                  <svg className="w-16 h-16 md:w-24 md:h-24 text-[#4da8ab]/10" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
                   </svg>
                 </div>
-                <div className="text-center">
-                  <h2 className="text-2xl md:text-3xl font-bold text-slate-800">ترانيم</h2>
-                  <p className="mt-4 text-slate-400 max-w-[280px] mx-auto text-sm md:text-base leading-relaxed">استورد ألحانك المفضلة واستمتع بتجربة استماع هادئة ومميزة</p>
+                <div className="text-center space-y-4">
+                  <h2 className="text-3xl font-bold text-slate-800">ترانيم</h2>
+                  <p className="text-slate-400 max-w-xs mx-auto leading-relaxed">قم باستيراد ألحانك المفضلة لتبدأ رحلة استماع فريدة</p>
                 </div>
               </div>
             )}
@@ -238,8 +241,8 @@ const App: React.FC = () => {
         </main>
       </div>
 
-      {/* 3. Footer Player Area (Always on Top of the view, bottom of the flex) */}
-      <div className="shrink-0 z-[100] bg-white border-t border-slate-100 shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
+      {/* Floating Player Section - Ensure it's on top and doesn't overlap */}
+      <footer className="shrink-0 z-[100] bg-white/95 backdrop-blur-xl border-t border-slate-100 shadow-[0_-20px_50px_rgba(0,0,0,0.08)] relative">
         <audio ref={audioRef} src={currentTrack?.url} className="hidden" />
         <Player 
           track={currentTrack} 
@@ -251,7 +254,7 @@ const App: React.FC = () => {
           onToggleFavorite={() => currentTrack && toggleFavorite(currentTrack.id)}
           onAddTimestamp={addTimestamp}
         />
-      </div>
+      </footer>
     </div>
   );
 };
