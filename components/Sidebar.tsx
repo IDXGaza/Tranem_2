@@ -5,6 +5,7 @@ import { Track } from '../types';
 interface SidebarProps {
   onImport: (file: File) => void;
   onRemove: (id: string) => void;
+  onMove: (fromIndex: number, toIndex: number) => void;
   tracks: Track[];
   currentId: string | null;
   onSelect: (index: number) => void;
@@ -12,8 +13,10 @@ interface SidebarProps {
   onClose?: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ onImport, onRemove, tracks, currentId, onSelect, isOpen, onClose }) => {
-  const favoriteTracks = tracks.filter(t => t.isFavorite);
+const Sidebar: React.FC<SidebarProps> = ({ onImport, onRemove, onMove, tracks, currentId, onSelect, isOpen, onClose }) => {
+  const favoriteTracksWithIndices = tracks
+    .map((track, originalIndex) => ({ track, originalIndex }))
+    .filter(item => item.track.isFavorite);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -22,6 +25,28 @@ const Sidebar: React.FC<SidebarProps> = ({ onImport, onRemove, tracks, currentId
       e.target.value = '';
       if (onClose) onClose();
     }
+  };
+
+  const handleMoveUp = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    onMove(index, index - 1);
+  };
+
+  const handleMoveDown = (e: React.MouseEvent, index: number) => {
+    e.stopPropagation();
+    onMove(index, index + 1);
+  };
+
+  // وظيفة مخصصة لنقل المفضلة: تجد أقرب "مفضلة" سابقة أو لاحقة وتتبادل معها في القائمة الرئيسية
+  const handleMoveFavorite = (e: React.MouseEvent, favIdx: number, direction: 'up' | 'down') => {
+    e.stopPropagation();
+    const targetFavIdx = direction === 'up' ? favIdx - 1 : favIdx + 1;
+    if (targetFavIdx < 0 || targetFavIdx >= favoriteTracksWithIndices.length) return;
+    
+    const currentMasterIdx = favoriteTracksWithIndices[favIdx].originalIndex;
+    const targetMasterIdx = favoriteTracksWithIndices[targetFavIdx].originalIndex;
+    
+    onMove(currentMasterIdx, targetMasterIdx);
   };
 
   return (
@@ -47,22 +72,40 @@ const Sidebar: React.FC<SidebarProps> = ({ onImport, onRemove, tracks, currentId
         </div>
 
         <nav className="flex-1 overflow-y-auto px-6 pb-40 space-y-10 scroll-container">
-          {favoriteTracks.length > 0 && (
+          {favoriteTracksWithIndices.length > 0 && (
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-rose-500/60 px-2">
                 <span className="text-[10px] font-black uppercase tracking-[0.3em]">المفضلة</span>
                 <div className="flex-1 h-px bg-rose-100" />
               </div>
               <div className="space-y-2">
-                {favoriteTracks.map(track => (
-                  <button 
-                    key={track.id}
-                    onClick={() => { onSelect(tracks.indexOf(track)); if (onClose) onClose(); }}
-                    className={`w-full flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 ${currentId === track.id ? 'bg-[#4da8ab]/10 text-[#4da8ab] shadow-sm' : 'hover:bg-slate-50 text-slate-600'}`}
-                  >
-                    <img src={track.coverUrl} className="w-10 h-10 rounded-xl object-cover shadow-sm" alt="" />
-                    <span className="truncate font-bold text-xs flex-1 text-right">{track.name}</span>
-                  </button>
+                {favoriteTracksWithIndices.map((item, favIdx) => (
+                  <div key={item.track.id} className="group flex items-center gap-1">
+                    <button 
+                      onClick={() => { onSelect(item.originalIndex); if (onClose) onClose(); }}
+                      className={`flex-1 flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 ${currentId === item.track.id ? 'bg-[#4da8ab]/10 text-[#4da8ab] shadow-sm' : 'hover:bg-slate-50 text-slate-600'}`}
+                    >
+                      <img src={item.track.coverUrl} className="w-10 h-10 rounded-xl object-cover shadow-sm" alt="" />
+                      <span className="truncate font-bold text-xs flex-1 text-right">{item.track.name}</span>
+                    </button>
+                    
+                    <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        disabled={favIdx === 0}
+                        onClick={(e) => handleMoveFavorite(e, favIdx, 'up')}
+                        className={`p-1 rounded-md hover:bg-slate-100 transition-colors ${favIdx === 0 ? 'text-slate-100' : 'text-slate-400'}`}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg>
+                      </button>
+                      <button 
+                        disabled={favIdx === favoriteTracksWithIndices.length - 1}
+                        onClick={(e) => handleMoveFavorite(e, favIdx, 'down')}
+                        className={`p-1 rounded-md hover:bg-slate-100 transition-colors ${favIdx === favoriteTracksWithIndices.length - 1 ? 'text-slate-100' : 'text-slate-400'}`}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+                      </button>
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
@@ -88,12 +131,32 @@ const Sidebar: React.FC<SidebarProps> = ({ onImport, onRemove, tracks, currentId
                       <img src={track.coverUrl} className="w-10 h-10 rounded-xl object-cover shadow-sm" alt="" />
                       <div className="flex-1 min-w-0 text-right">
                         <p className="truncate font-bold text-xs">{track.name}</p>
-                        <p className="text-[9px] opacity-40 font-bold uppercase mt-1">Audio File</p>
+                        <p className="text-[9px] opacity-40 font-bold uppercase mt-1">ملف صوتي</p>
                       </div>
                     </button>
-                    <button onClick={() => onRemove(track.id)} className="p-3 text-slate-200 hover:text-rose-500 opacity-0 group-hover:opacity-100 transition-all active:scale-90">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
+                    
+                    {/* أزرار إعادة الترتيب والإزالة */}
+                    <div className="flex flex-col gap-0.5 items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        disabled={idx === 0}
+                        onClick={(e) => handleMoveUp(e, idx)}
+                        className={`p-1 hover:text-[#4da8ab] transition-colors ${idx === 0 ? 'text-slate-100' : 'text-slate-300'}`}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7"/></svg>
+                      </button>
+                      
+                      <button onClick={(e) => { e.stopPropagation(); onRemove(track.id); }} className="p-1 text-slate-200 hover:text-rose-500 transition-all active:scale-90">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+
+                      <button 
+                        disabled={idx === tracks.length - 1}
+                        onClick={(e) => handleMoveDown(e, idx)}
+                        className={`p-1 hover:text-[#4da8ab] transition-colors ${idx === tracks.length - 1 ? 'text-slate-100' : 'text-slate-300'}`}
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7"/></svg>
+                      </button>
+                    </div>
                   </div>
                 ))
               )}

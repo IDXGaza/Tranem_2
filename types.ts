@@ -15,6 +15,7 @@ export interface Track {
   timestamps: Timestamp[];
   duration: number;
   playbackRate: number;
+  order: number; // للتحكم في ترتيب العرض
 }
 
 export interface PlayerState {

@@ -5,6 +5,9 @@ import Sidebar from './components/Sidebar';
 import Player from './components/Player';
 import TimestampManager from './components/TimestampManager';
 
+// صورة افتراضية موحدة للأناشيد التي لا تملك غلافاً
+const UNIFORM_PLACEHOLDER = "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=600&h=600&auto=format&fit=crop";
+
 // --- IndexedDB Logic ---
 const DB_NAME = 'TraneemDB';
 const STORE_NAME = 'tracks';
@@ -74,10 +77,11 @@ const App: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       const savedTracks = await getAllTracksFromDB();
-      const tracksWithUrls = savedTracks.map(t => ({
+      const sortedTracks = savedTracks.sort((a, b) => (a.order || 0) - (b.order || 0));
+      const tracksWithUrls = sortedTracks.map(t => ({
         ...t,
         url: URL.createObjectURL(t.fileBlob),
-        coverUrl: t.coverBlob ? URL.createObjectURL(t.coverBlob) : t.coverUrl
+        coverUrl: t.coverBlob ? URL.createObjectURL(t.coverBlob) : (t.coverUrl || UNIFORM_PLACEHOLDER)
       }));
       setTracks(tracksWithUrls);
       if (tracksWithUrls.length > 0) setCurrentTrackIndex(0);
@@ -85,17 +89,9 @@ const App: React.FC = () => {
     loadData();
   }, []);
 
-  // تشغيل تلقائي عند تغيير المقطع
   useEffect(() => {
     if (currentTrackIndex !== null && playerState.isPlaying && audioRef.current) {
-      const playAudio = async () => {
-        try {
-          await audioRef.current?.play();
-        } catch (e) {
-          console.error("Auto-play blocked or failed", e);
-        }
-      };
-      playAudio();
+      audioRef.current.play().catch(() => {});
     }
   }, [currentTrackIndex]);
 
@@ -106,15 +102,11 @@ const App: React.FC = () => {
     const updateTime = () => setPlayerState(prev => ({ ...prev, currentTime: audio.currentTime }));
     const onEnded = () => setPlayerState(prev => ({ ...prev, isPlaying: false }));
     const onWaiting = () => setPlayerState(prev => ({ ...prev, isLoading: true }));
-    const onPlaying = () => {
-      setPlayerState(prev => ({ ...prev, isLoading: false }));
-      if (audio) audio.playbackRate = playerState.playbackRate;
-    };
+    const onPlaying = () => setPlayerState(prev => ({ ...prev, isLoading: false }));
     
     const onCanPlay = () => {
       setLoadError(null);
       setPlayerState(prev => ({ ...prev, isLoading: false }));
-      if (audio) audio.playbackRate = playerState.playbackRate;
       if (playerState.isPlaying) audio.play().catch(() => {});
     };
 
@@ -126,7 +118,7 @@ const App: React.FC = () => {
     };
 
     const onError = () => {
-      setLoadError("فشل تشغيل المقطع. تأكد من أن الملف سليم.");
+      setLoadError("فشل تشغيل المقطع.");
       setPlayerState(prev => ({ ...prev, isPlaying: false, isLoading: false }));
     };
 
@@ -156,11 +148,8 @@ const App: React.FC = () => {
 
   const handlePlayPause = () => {
     if (!audioRef.current) return;
-    if (playerState.isPlaying) {
-      audioRef.current.pause();
-    } else {
-      audioRef.current.play().catch(() => setLoadError("تعذر التشغيل."));
-    }
+    if (playerState.isPlaying) audioRef.current.pause();
+    else audioRef.current.play().catch(() => {});
     setPlayerState(prev => ({ ...prev, isPlaying: !playerState.isPlaying }));
   };
 
@@ -170,50 +159,70 @@ const App: React.FC = () => {
   };
 
   const handleToggleFavorite = () => {
-    if (currentTrackIndex === null || !currentTrack) return;
+    if (!currentTrack) return;
     const updatedTrack = { ...currentTrack, isFavorite: !currentTrack.isFavorite };
-    setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? updatedTrack : t));
+    setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
     saveTrackToDB(updatedTrack);
   };
 
-  const handleUpdateName = () => {
-    if (currentTrackIndex === null || !currentTrack) return;
-    const newName = prompt("تعديل اسم المقطع:", currentTrack.name);
-    if (newName && newName.trim() !== "") {
+  const handleUpdateName = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!currentTrack) return;
+    const oldName = currentTrack.name;
+    const newName = window.prompt("تعديل اسم الأنشودة:", oldName);
+    if (newName !== null && newName.trim() !== "" && newName !== oldName) {
       const updatedTrack = { ...currentTrack, name: newName.trim() };
-      setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? updatedTrack : t));
+      setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
+      saveTrackToDB(updatedTrack);
+    }
+  };
+
+  const handleUpdateArtist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!currentTrack) return;
+    const oldArtist = currentTrack.artist || "";
+    const newArtist = window.prompt("تعديل اسم الفنان:", oldArtist);
+    if (newArtist !== null && newArtist !== oldArtist) {
+      const updatedTrack = { ...currentTrack, artist: newArtist.trim() };
+      setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
       saveTrackToDB(updatedTrack);
     }
   };
 
   const handleUpdateCover = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && currentTrackIndex !== null && currentTrack) {
+    if (file && currentTrack) {
       const newCoverUrl = URL.createObjectURL(file);
       const updatedTrack = { ...currentTrack, coverUrl: newCoverUrl, coverBlob: file };
-      setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? updatedTrack : t));
+      setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
       saveTrackToDB(updatedTrack);
     }
   };
 
   const handleAddTimestamp = () => {
-    if (currentTrackIndex === null || !audioRef.current || !currentTrack) return;
+    if (!audioRef.current || !currentTrack) return;
     const time = audioRef.current.currentTime;
-    const label = prompt("وصف العلامة:") || `علامة زمنية`;
+    
+    // جعل إضافة العلامة فورية باستخدام رقم تسلسلي بدلاً من prompt
+    const label = `علامة ${currentTrack.timestamps.length + 1}`;
+    
     const newTimestamp: Timestamp = {
       id: Math.random().toString(36).substr(2, 9),
       time,
       label
     };
+    
     const updatedTrack = { ...currentTrack, timestamps: [...currentTrack.timestamps, newTimestamp] };
-    setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? updatedTrack : t));
+    setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
     saveTrackToDB(updatedTrack);
   };
 
   const handleRemoveTimestamp = (timestampId: string) => {
-    if (currentTrackIndex === null || !currentTrack) return;
+    if (!currentTrack) return;
     const updatedTrack = { ...currentTrack, timestamps: currentTrack.timestamps.filter(ts => ts.id !== timestampId) };
-    setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? updatedTrack : t));
+    setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
     saveTrackToDB(updatedTrack);
   };
 
@@ -221,18 +230,16 @@ const App: React.FC = () => {
     const name = file.name.replace(/\.[^/.]+$/, "");
     const id = Math.random().toString(36).substr(2, 9);
     const newTrack: any = {
-      id,
-      name,
-      artist: "",
+      id, name, artist: "",
       url: URL.createObjectURL(file),
-      coverUrl: `https://picsum.photos/seed/${id}/600/600`,
+      coverUrl: UNIFORM_PLACEHOLDER,
       isFavorite: false,
       timestamps: [],
       duration: 0,
       playbackRate: 1,
+      order: tracks.length,
       fileBlob: file,
     };
-    
     await saveTrackToDB(newTrack);
     setTracks(prev => {
       const updated = [...prev, newTrack];
@@ -252,73 +259,91 @@ const App: React.FC = () => {
     });
   };
 
+  const handleMoveTrack = async (fromIndex: number, toIndex: number) => {
+    if (toIndex < 0 || toIndex >= tracks.length) return;
+    const newTracks = [...tracks];
+    const [moved] = newTracks.splice(fromIndex, 1);
+    newTracks.splice(toIndex, 0, moved);
+    const updatedTracks = newTracks.map((t, idx) => ({ ...t, order: idx }));
+    setTracks(updatedTracks);
+    const newIdx = updatedTracks.findIndex(t => t.id === currentTrack?.id);
+    if (newIdx !== -1) setCurrentTrackIndex(newIdx);
+    for (const track of updatedTracks) await saveTrackToDB(track);
+  };
+
   return (
     <div className="flex flex-col h-screen h-[100dvh] bg-[#f8fafb] text-slate-700 overflow-hidden font-cairo watercolor-bg relative">
       <header className="flex lg:hidden items-center justify-between p-4 bg-white/80 backdrop-blur-lg border-b border-slate-100 shrink-0 z-40 landscape:py-2">
         <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-[#4da8ab] active:scale-95 transition-transform">
           <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
-        <div className="flex flex-col items-center">
-          <h1 className="text-xl font-black text-[#4da8ab] landscape:text-lg">ترانيم</h1>
-          <span className="text-[8px] font-bold text-slate-400 landscape:hidden">يعمل بدون إنترنت</span>
-        </div>
+        <h1 className="text-xl font-black text-[#4da8ab]">ترانيم</h1>
         <div className="w-10"></div>
       </header>
 
       <div className="flex-1 flex overflow-hidden relative">
         <Sidebar 
-          onImport={addTrack} 
-          onRemove={removeTrack}
-          tracks={tracks} 
-          currentId={currentTrack?.id || null} 
-          onSelect={handleSelectTrack}
-          isOpen={isSidebarOpen}
-          onClose={() => setIsSidebarOpen(false)}
+          onImport={addTrack} onRemove={removeTrack} onMove={handleMoveTrack}
+          tracks={tracks} currentId={currentTrack?.id || null} onSelect={handleSelectTrack}
+          isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)}
         />
         
-        <main className="flex-1 overflow-y-auto scroll-container bg-transparent relative z-0">
-          <div className="px-4 py-8 md:p-12 max-w-4xl mx-auto w-full flex flex-col items-center landscape:py-4">
+        <main className="flex-1 overflow-y-auto scroll-container bg-transparent relative z-10">
+          <div className="px-4 py-8 md:p-12 max-w-4xl mx-auto w-full flex flex-col items-center">
             {currentTrack ? (
-              <div className="w-full flex flex-col items-center space-y-8 md:space-y-10 animate-in fade-in duration-500">
+              <div className="w-full flex flex-col items-center space-y-6 md:space-y-10 animate-in fade-in duration-500">
                 
                 {/* 1. الصورة في المنتصف */}
                 <div className="relative group w-full max-w-[200px] md:max-w-xs lg:max-w-sm shrink-0">
                   <div className="relative aspect-square w-full overflow-hidden rounded-[40px] md:rounded-[60px] shadow-2xl border-[4px] md:border-[6px] border-white group-hover:scale-[1.01] transition-all duration-500">
                     <img src={currentTrack.coverUrl} className="w-full h-full object-cover" alt="" />
-                    <button 
-                      onClick={() => coverInputRef.current?.click()}
-                      className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white"
-                    >
+                    <button onClick={() => coverInputRef.current?.click()} className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white z-20 cursor-pointer">
                       <svg className="w-8 h-8 md:w-12 md:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </button>
                     <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={handleUpdateCover} />
                   </div>
                 </div>
 
-                {/* 2. اسم الأنشودة */}
-                <div className="text-center w-full px-4 min-w-0">
-                  <div className="flex items-center justify-center gap-2 max-w-full">
-                    <h1 className="text-xl md:text-4xl font-black text-slate-800 leading-tight truncate px-2">
-                      {currentTrack.name}
-                    </h1>
-                    <button onClick={handleUpdateName} className="p-1.5 text-slate-300 hover:text-[#4da8ab] transition-colors shrink-0">
-                      <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                {/* 2. اسم الأنشودة والفنان - أزرار واضحة مع z-index مرتفع للتعديل */}
+                <div className="relative z-30 text-center w-full px-4 min-w-0 space-y-3 md:space-y-6">
+                  
+                  {/* زر تعديل اسم المقطع */}
+                  <div className="flex justify-center">
+                    <button 
+                      onClick={handleUpdateName}
+                      className="flex items-center gap-2 group/title hover:bg-[#4da8ab]/10 bg-[#4da8ab]/5 px-5 py-3 rounded-2xl transition-all active:scale-95 cursor-pointer border border-[#4da8ab]/20"
+                    >
+                      <h1 className="text-xl md:text-4xl font-black text-slate-800 leading-tight truncate group-hover/title:text-[#4da8ab]">
+                        {currentTrack.name}
+                      </h1>
+                      <svg className="w-5 h-5 md:w-6 md:h-6 text-[#4da8ab] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                    </button>
+                  </div>
+                  
+                  {/* زر تعديل اسم الفنان */}
+                  <div className="flex justify-center">
+                    <button 
+                      onClick={handleUpdateArtist}
+                      className="flex items-center gap-2 group/artist hover:bg-slate-200 bg-slate-100 px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer"
+                    >
+                      <span className={`text-sm md:text-xl font-bold transition-colors group-hover/artist:text-[#4da8ab] ${currentTrack.artist ? 'text-slate-600' : 'text-slate-400 italic'}`}>
+                        {currentTrack.artist || "إضافة اسم الفنان..."}
+                      </span>
+                      <svg className="w-4 h-4 text-slate-400 group-hover/artist:text-[#4da8ab] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </button>
                   </div>
                 </div>
 
-                {/* 3. قائمة العلامات الزمنية تحتها */}
+                {/* 3. قائمة العلامات الزمنية */}
                 <div className="w-full max-w-2xl px-2">
                   <TimestampManager 
-                    timestamps={currentTrack.timestamps} 
-                    onRemove={handleRemoveTimestamp} 
+                    timestamps={currentTrack.timestamps} onRemove={handleRemoveTimestamp} 
                     onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} 
                     currentTime={playerState.currentTime} 
                   />
                 </div>
 
-                {/* مساحة إضافية لمنع تداخل القائمة مع المشغل العائم */}
-                <div className="h-48 md:h-64 shrink-0 w-full" aria-hidden="true" />
+                <div className="h-64 md:h-80 shrink-0 w-full" aria-hidden="true" />
               </div>
             ) : (
               <div className="h-[60vh] flex flex-col items-center justify-center space-y-6 text-center px-6 opacity-30">
@@ -326,7 +351,6 @@ const App: React.FC = () => {
                   <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                 </div>
                 <h2 className="text-lg font-black text-slate-800">مكتبتك خالية</h2>
-                <p className="text-xs">سيتم حفظ جميع ألحانك محلياً على جهازك</p>
               </div>
             )}
           </div>
@@ -337,15 +361,11 @@ const App: React.FC = () => {
         <audio key={currentTrack?.url} ref={audioRef} src={currentTrack?.url} className="hidden" preload="auto" crossOrigin="anonymous" />
         <div className="max-w-3xl mx-auto bg-white/95 backdrop-blur-3xl border border-white/50 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.3)] rounded-[32px] pointer-events-auto overflow-hidden">
           <Player 
-            track={currentTrack} 
-            state={playerState} 
-            onPlayPause={handlePlayPause} 
+            track={currentTrack} state={playerState} onPlayPause={handlePlayPause} 
             onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} 
             onSkip={(s) => audioRef.current && (audioRef.current.currentTime += s)} 
-            onRateChange={handleRateChange} 
-            onToggleFavorite={handleToggleFavorite} 
-            onAddTimestamp={handleAddTimestamp} 
-            hasError={!!loadError}
+            onRateChange={handleRateChange} onToggleFavorite={handleToggleFavorite} 
+            onAddTimestamp={handleAddTimestamp} hasError={!!loadError}
           />
         </div>
       </footer>
