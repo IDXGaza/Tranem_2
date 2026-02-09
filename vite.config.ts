@@ -4,8 +4,8 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  publicDir: 'public',
   define: {
+    // هذا السطر يضمن أن process.env.API_KEY متاح داخل الكود في المتصفح
     'process.env.API_KEY': JSON.stringify(process.env.API_KEY)
   },
   build: {
