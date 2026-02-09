@@ -20,7 +20,8 @@ const Sidebar: React.FC<SidebarProps> = ({ onImport, onRemove, onMove, tracks, c
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file?.type.startsWith('audio/')) {
+    // تحقق إضافي لضمان أن الملف صوّتي فعلاً
+    if (file && (file.type.startsWith('audio/') || file.name.match(/\.(mp3|wav|m4a|ogg|flac|aac)$/i))) {
       onImport(file);
       e.target.value = '';
       if (onClose) onClose();
@@ -37,7 +38,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onImport, onRemove, onMove, tracks, c
     onMove(index, index + 1);
   };
 
-  // وظيفة مخصصة لنقل المفضلة: تجد أقرب "مفضلة" سابقة أو لاحقة وتتبادل معها في القائمة الرئيسية
   const handleMoveFavorite = (e: React.MouseEvent, favIdx: number, direction: 'up' | 'down') => {
     e.stopPropagation();
     const targetFavIdx = direction === 'up' ? favIdx - 1 : favIdx + 1;
@@ -66,7 +66,12 @@ const Sidebar: React.FC<SidebarProps> = ({ onImport, onRemove, onMove, tracks, c
             <div className="relative w-full bg-[#4da8ab] hover:bg-[#3d8c8e] text-white font-bold py-5 rounded-[24px] transition-all shadow-lg flex items-center justify-center gap-3 overflow-hidden text-sm active:scale-[0.98] cursor-pointer">
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4"/></svg>
               <span>استيراد لحن</span>
-              <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" accept="audio/*" onChange={handleFileChange} />
+              <input 
+                type="file" 
+                className="absolute inset-0 opacity-0 cursor-pointer" 
+                accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac,.aac" 
+                onChange={handleFileChange} 
+              />
             </div>
           </label>
         </div>
@@ -135,7 +140,6 @@ const Sidebar: React.FC<SidebarProps> = ({ onImport, onRemove, onMove, tracks, c
                       </div>
                     </button>
                     
-                    {/* أزرار إعادة الترتيب والإزالة */}
                     <div className="flex flex-col gap-0.5 items-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <button 
                         disabled={idx === 0}
