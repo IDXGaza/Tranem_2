@@ -67,6 +67,7 @@ const App: React.FC = () => {
     volume: 1,
     playbackRate: 1,
     isLoading: false,
+    isLooping: false,
   });
 
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -97,46 +98,44 @@ const App: React.FC = () => {
         artist: currentTrack.artist || 'ترانيم',
         album: 'مكتبتي',
         artwork: [
-          { src: currentTrack.coverUrl, sizes: '96x96', type: 'image/png' },
-          { src: currentTrack.coverUrl, sizes: '128x128', type: 'image/png' },
-          { src: currentTrack.coverUrl, sizes: '192x192', type: 'image/png' },
-          { src: currentTrack.coverUrl, sizes: '256x256', type: 'image/png' },
-          { src: currentTrack.coverUrl, sizes: '384x384', type: 'image/png' },
           { src: currentTrack.coverUrl, sizes: '512x512', type: 'image/png' },
         ]
       });
 
       navigator.mediaSession.setActionHandler('play', () => handlePlayPause());
       navigator.mediaSession.setActionHandler('pause', () => handlePlayPause());
-      navigator.mediaSession.setActionHandler('seekbackward', () => { if(audioRef.current) audioRef.current.currentTime -= 10; });
-      navigator.mediaSession.setActionHandler('seekforward', () => { if(audioRef.current) audioRef.current.currentTime += 10; });
       navigator.mediaSession.setActionHandler('previoustrack', () => {
         if (currentTrackIndex !== null && currentTrackIndex > 0) handleSelectTrack(currentTrackIndex - 1);
+        else if (currentTrackIndex === 0) handleSelectTrack(tracks.length - 1);
       });
       navigator.mediaSession.setActionHandler('nexttrack', () => {
-        if (currentTrackIndex !== null && currentTrackIndex < tracks.length - 1) handleSelectTrack(currentTrackIndex + 1);
+        handleSkipToNext();
       });
     }
   }, [currentTrack, currentTrackIndex, tracks.length]);
 
-  useEffect(() => {
-    if ('mediaSession' in navigator) {
-      navigator.mediaSession.playbackState = playerState.isPlaying ? 'playing' : 'paused';
+  const handleSkipToNext = () => {
+    if (currentTrackIndex !== null) {
+      const nextIndex = (currentTrackIndex + 1) % tracks.length;
+      handleSelectTrack(nextIndex);
     }
-  }, [playerState.isPlaying]);
-
-  useEffect(() => {
-    if (currentTrackIndex !== null && playerState.isPlaying && audioRef.current) {
-      audioRef.current.play().catch(() => {});
-    }
-  }, [currentTrackIndex]);
+  };
 
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const updateTime = () => setPlayerState(prev => ({ ...prev, currentTime: audio.currentTime }));
-    const onEnded = () => setPlayerState(prev => ({ ...prev, isPlaying: false }));
+    
+    const onEnded = () => {
+      if (playerState.isLooping) {
+        audio.currentTime = 0;
+        audio.play().catch(() => {});
+      } else {
+        handleSkipToNext();
+      }
+    };
+
     const onWaiting = () => setPlayerState(prev => ({ ...prev, isLoading: true }));
     const onPlaying = () => setPlayerState(prev => ({ ...prev, isLoading: false }));
     
@@ -175,7 +174,7 @@ const App: React.FC = () => {
       audio.removeEventListener('loadedmetadata', onLoadedMetadata);
       audio.removeEventListener('error', onError);
     };
-  }, [currentTrack?.url, currentTrackIndex, playerState.playbackRate, playerState.isPlaying]);
+  }, [currentTrack?.url, currentTrackIndex, playerState.playbackRate, playerState.isPlaying, playerState.isLooping, tracks.length]);
 
   const handleSelectTrack = (index: number) => {
     setCurrentTrackIndex(index);
@@ -191,6 +190,10 @@ const App: React.FC = () => {
       audioRef.current.play().catch(() => {});
       setPlayerState(prev => ({ ...prev, isPlaying: true }));
     }
+  };
+
+  const handleToggleLoop = () => {
+    setPlayerState(prev => ({ ...prev, isLooping: !prev.isLooping }));
   };
 
   const handleRateChange = (rate: number) => {
@@ -383,7 +386,7 @@ const App: React.FC = () => {
       <footer className="fixed bottom-0 left-0 right-0 z-[50] p-4 md:p-8 pointer-events-none mb-[env(safe-area-inset-bottom,0px)]">
         <audio key={currentTrack?.url} ref={audioRef} src={currentTrack?.url} className="hidden" preload="auto" crossOrigin="anonymous" />
         <div className="max-w-3xl mx-auto bg-white/95 backdrop-blur-3xl border border-white/50 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.3)] rounded-[32px] pointer-events-auto overflow-hidden">
-          <Player track={currentTrack} state={playerState} onPlayPause={handlePlayPause} onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} onSkip={(s) => audioRef.current && (audioRef.current.currentTime += s)} onRateChange={handleRateChange} onToggleFavorite={handleToggleFavorite} onAddTimestamp={handleAddTimestamp} hasError={!!loadError} />
+          <Player track={currentTrack} state={playerState} onPlayPause={handlePlayPause} onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} onSkip={(s) => audioRef.current && (audioRef.current.currentTime += s)} onRateChange={handleRateChange} onToggleFavorite={handleToggleFavorite} onToggleLoop={handleToggleLoop} onAddTimestamp={handleAddTimestamp} hasError={!!loadError} />
         </div>
       </footer>
     </div>

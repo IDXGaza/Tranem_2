@@ -10,6 +10,7 @@ interface PlayerProps {
   onSkip: (seconds: number) => void;
   onRateChange: (rate: number) => void;
   onToggleFavorite: () => void;
+  onToggleLoop: () => void;
   onAddTimestamp: () => void;
   hasError?: boolean;
 }
@@ -22,7 +23,7 @@ const formatTime = (time: number) => {
 };
 
 const Player: React.FC<PlayerProps> = ({ 
-  track, state, onPlayPause, onSeek, onSkip, onRateChange, onToggleFavorite, onAddTimestamp, hasError 
+  track, state, onPlayPause, onSeek, onSkip, onRateChange, onToggleFavorite, onToggleLoop, onAddTimestamp, hasError 
 }) => {
   if (!track) return null;
 
@@ -61,8 +62,8 @@ const Player: React.FC<PlayerProps> = ({
       {/* عناصر التحكم الرئيسية */}
       <div className="flex items-center justify-between gap-2">
         
-        {/* الجهة اليمنى: مفضلة وسرعة */}
-        <div className="flex items-center gap-1 md:gap-4 flex-1 justify-start">
+        {/* الجهة اليمنى: مفضلة وسرعة وتكرار */}
+        <div className="flex items-center gap-1 md:gap-3 flex-1 justify-start">
           <button 
             onClick={onToggleFavorite} 
             className={`p-2 transition-all active:scale-90 ${track.isFavorite ? 'text-rose-500' : 'text-slate-300'}`}
@@ -71,8 +72,19 @@ const Player: React.FC<PlayerProps> = ({
               <path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
             </svg>
           </button>
+
+          {/* زر التكرار */}
+          <button 
+            onClick={onToggleLoop} 
+            className={`p-2 transition-all active:scale-90 ${state.isLooping ? 'text-[#4da8ab]' : 'text-slate-300'}`}
+            title="تكرار النشيد"
+          >
+            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </button>
           
-          <div className="relative group/rate">
+          <div className="relative group/rate hidden sm:block">
             <select 
               value={state.playbackRate} 
               onChange={(e) => onRateChange(Number(e.target.value))} 

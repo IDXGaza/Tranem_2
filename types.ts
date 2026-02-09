@@ -24,4 +24,5 @@ export interface PlayerState {
   volume: number;
   playbackRate: number;
   isLoading: boolean;
+  isLooping: boolean; // ميزة التكرار المضافة
 }
