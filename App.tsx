@@ -89,6 +89,42 @@ const App: React.FC = () => {
     loadData();
   }, []);
 
+  // --- Media Session API integration ---
+  useEffect(() => {
+    if ('mediaSession' in navigator && currentTrack) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrack.name,
+        artist: currentTrack.artist || 'ترانيم',
+        album: 'مكتبتي',
+        artwork: [
+          { src: currentTrack.coverUrl, sizes: '96x96', type: 'image/png' },
+          { src: currentTrack.coverUrl, sizes: '128x128', type: 'image/png' },
+          { src: currentTrack.coverUrl, sizes: '192x192', type: 'image/png' },
+          { src: currentTrack.coverUrl, sizes: '256x256', type: 'image/png' },
+          { src: currentTrack.coverUrl, sizes: '384x384', type: 'image/png' },
+          { src: currentTrack.coverUrl, sizes: '512x512', type: 'image/png' },
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => handlePlayPause());
+      navigator.mediaSession.setActionHandler('pause', () => handlePlayPause());
+      navigator.mediaSession.setActionHandler('seekbackward', () => { if(audioRef.current) audioRef.current.currentTime -= 10; });
+      navigator.mediaSession.setActionHandler('seekforward', () => { if(audioRef.current) audioRef.current.currentTime += 10; });
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        if (currentTrackIndex !== null && currentTrackIndex > 0) handleSelectTrack(currentTrackIndex - 1);
+      });
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        if (currentTrackIndex !== null && currentTrackIndex < tracks.length - 1) handleSelectTrack(currentTrackIndex + 1);
+      });
+    }
+  }, [currentTrack, currentTrackIndex, tracks.length]);
+
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = playerState.isPlaying ? 'playing' : 'paused';
+    }
+  }, [playerState.isPlaying]);
+
   useEffect(() => {
     if (currentTrackIndex !== null && playerState.isPlaying && audioRef.current) {
       audioRef.current.play().catch(() => {});
@@ -148,9 +184,13 @@ const App: React.FC = () => {
 
   const handlePlayPause = () => {
     if (!audioRef.current) return;
-    if (playerState.isPlaying) audioRef.current.pause();
-    else audioRef.current.play().catch(() => {});
-    setPlayerState(prev => ({ ...prev, isPlaying: !playerState.isPlaying }));
+    if (playerState.isPlaying) {
+      audioRef.current.pause();
+      setPlayerState(prev => ({ ...prev, isPlaying: false }));
+    } else {
+      audioRef.current.play().catch(() => {});
+      setPlayerState(prev => ({ ...prev, isPlaying: true }));
+    }
   };
 
   const handleRateChange = (rate: number) => {
@@ -204,16 +244,12 @@ const App: React.FC = () => {
   const handleAddTimestamp = () => {
     if (!audioRef.current || !currentTrack) return;
     const time = audioRef.current.currentTime;
-    
-    // جعل إضافة العلامة فورية باستخدام رقم تسلسلي بدلاً من prompt
     const label = `علامة ${currentTrack.timestamps.length + 1}`;
-    
     const newTimestamp: Timestamp = {
       id: Math.random().toString(36).substr(2, 9),
       time,
       label
     };
-    
     const updatedTrack = { ...currentTrack, timestamps: [...currentTrack.timestamps, newTimestamp] };
     setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
     saveTrackToDB(updatedTrack);
@@ -292,9 +328,7 @@ const App: React.FC = () => {
           <div className="px-4 py-8 md:p-12 max-w-4xl mx-auto w-full flex flex-col items-center">
             {currentTrack ? (
               <div className="w-full flex flex-col items-center space-y-6 md:space-y-10 animate-in fade-in duration-500">
-                
-                {/* 1. الصورة في المنتصف */}
-                <div className="relative group w-full max-w-[200px] md:max-w-xs lg:max-w-sm shrink-0">
+                <div className="relative group w-full max-w-[200px] md:space-y-10 animate-in fade-in duration-500">
                   <div className="relative aspect-square w-full overflow-hidden rounded-[40px] md:rounded-[60px] shadow-2xl border-[4px] md:border-[6px] border-white group-hover:scale-[1.01] transition-all duration-500">
                     <img src={currentTrack.coverUrl} className="w-full h-full object-cover" alt="" />
                     <button onClick={() => coverInputRef.current?.click()} className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white z-20 cursor-pointer">
@@ -304,45 +338,24 @@ const App: React.FC = () => {
                   </div>
                 </div>
 
-                {/* 2. اسم الأنشودة والفنان - أزرار واضحة مع z-index مرتفع للتعديل */}
                 <div className="relative z-30 text-center w-full px-4 min-w-0 space-y-3 md:space-y-6">
-                  
-                  {/* زر تعديل اسم المقطع */}
                   <div className="flex justify-center">
-                    <button 
-                      onClick={handleUpdateName}
-                      className="flex items-center gap-2 group/title hover:bg-[#4da8ab]/10 bg-[#4da8ab]/5 px-5 py-3 rounded-2xl transition-all active:scale-95 cursor-pointer border border-[#4da8ab]/20"
-                    >
-                      <h1 className="text-xl md:text-4xl font-black text-slate-800 leading-tight truncate group-hover/title:text-[#4da8ab]">
-                        {currentTrack.name}
-                      </h1>
+                    <button onClick={handleUpdateName} className="flex items-center gap-2 group/title hover:bg-[#4da8ab]/10 bg-[#4da8ab]/5 px-5 py-3 rounded-2xl transition-all active:scale-95 cursor-pointer border border-[#4da8ab]/20">
+                      <h1 className="text-xl md:text-4xl font-black text-slate-800 leading-tight truncate group-hover/title:text-[#4da8ab]">{currentTrack.name}</h1>
                       <svg className="w-5 h-5 md:w-6 md:h-6 text-[#4da8ab] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </button>
                   </div>
-                  
-                  {/* زر تعديل اسم الفنان */}
                   <div className="flex justify-center">
-                    <button 
-                      onClick={handleUpdateArtist}
-                      className="flex items-center gap-2 group/artist hover:bg-slate-200 bg-slate-100 px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer"
-                    >
-                      <span className={`text-sm md:text-xl font-bold transition-colors group-hover/artist:text-[#4da8ab] ${currentTrack.artist ? 'text-slate-600' : 'text-slate-400 italic'}`}>
-                        {currentTrack.artist || "إضافة اسم الفنان..."}
-                      </span>
+                    <button onClick={handleUpdateArtist} className="flex items-center gap-2 group/artist hover:bg-slate-200 bg-slate-100 px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer">
+                      <span className={`text-sm md:text-xl font-bold transition-colors group-hover/artist:text-[#4da8ab] ${currentTrack.artist ? 'text-slate-600' : 'text-slate-400 italic'}`}>{currentTrack.artist || "إضافة اسم الفنان..."}</span>
                       <svg className="w-4 h-4 text-slate-400 group-hover/artist:text-[#4da8ab] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
                     </button>
                   </div>
                 </div>
 
-                {/* 3. قائمة العلامات الزمنية */}
                 <div className="w-full max-w-2xl px-2">
-                  <TimestampManager 
-                    timestamps={currentTrack.timestamps} onRemove={handleRemoveTimestamp} 
-                    onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} 
-                    currentTime={playerState.currentTime} 
-                  />
+                  <TimestampManager timestamps={currentTrack.timestamps} onRemove={handleRemoveTimestamp} onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} currentTime={playerState.currentTime} />
                 </div>
-
                 <div className="h-64 md:h-80 shrink-0 w-full" aria-hidden="true" />
               </div>
             ) : (
@@ -360,13 +373,7 @@ const App: React.FC = () => {
       <footer className="fixed bottom-0 left-0 right-0 z-[50] p-4 md:p-8 pointer-events-none mb-[env(safe-area-inset-bottom,0px)]">
         <audio key={currentTrack?.url} ref={audioRef} src={currentTrack?.url} className="hidden" preload="auto" crossOrigin="anonymous" />
         <div className="max-w-3xl mx-auto bg-white/95 backdrop-blur-3xl border border-white/50 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.3)] rounded-[32px] pointer-events-auto overflow-hidden">
-          <Player 
-            track={currentTrack} state={playerState} onPlayPause={handlePlayPause} 
-            onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} 
-            onSkip={(s) => audioRef.current && (audioRef.current.currentTime += s)} 
-            onRateChange={handleRateChange} onToggleFavorite={handleToggleFavorite} 
-            onAddTimestamp={handleAddTimestamp} hasError={!!loadError}
-          />
+          <Player track={currentTrack} state={playerState} onPlayPause={handlePlayPause} onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} onSkip={(s) => audioRef.current && (audioRef.current.currentTime += s)} onRateChange={handleRateChange} onToggleFavorite={handleToggleFavorite} onAddTimestamp={handleAddTimestamp} hasError={!!loadError} />
         </div>
       </footer>
     </div>
