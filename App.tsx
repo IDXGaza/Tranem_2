@@ -329,7 +329,7 @@ const App: React.FC = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen h-[100dvh] bg-[#f8fafb] dark:bg-[#0f172a] text-slate-700 dark:text-slate-200 overflow-hidden font-cairo watercolor-bg relative transition-colors duration-300">
+    <div className="flex flex-col h-screen h-[100dvh] bg-[#f8fafb] dark:bg-slate-950 text-slate-700 dark:text-slate-200 overflow-hidden font-cairo watercolor-bg relative transition-colors duration-300">
       <header className="flex lg:hidden items-center justify-between p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-100 dark:border-slate-800 shrink-0 z-40 landscape:py-2">
         <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-[#4da8ab] active:scale-95 transition-transform">
           <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
@@ -381,7 +381,7 @@ const App: React.FC = () => {
                   <div className="flex justify-center w-full">
                     <button 
                       onClick={handleUpdateArtist} 
-                      className="flex items-center gap-2 group/artist hover:bg-slate-200 dark:hover:bg-slate-700 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer max-w-[80vw] md:max-w-[50vw]"
+                      className="flex items-center gap-2 group/artist hover:bg-slate-200 dark:hover:bg-slate-800 bg-slate-100 dark:bg-slate-900 px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer max-w-[80vw] md:max-w-[50vw]"
                     >
                       <span className={`text-sm md:text-xl font-bold transition-colors group-hover/artist:text-[#4da8ab] truncate ${currentTrack.artist ? 'text-slate-600 dark:text-slate-300' : 'text-slate-400 italic'}`}>
                         {currentTrack.artist || "إضافة اسم الفنان..."}
@@ -401,7 +401,7 @@ const App: React.FC = () => {
                 <div className="w-20 h-20 bg-[#4da8ab]/5 rounded-[24px] flex items-center justify-center text-[#4da8ab]">
                   <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                 </div>
-                <h2 className="text-lg font-black text-slate-800 dark:text-slate-200">مكتبتك خالية</h2>
+                <h2 className="text-lg font-black text-slate-800 dark:text-slate-400">مكتبتك خالية</h2>
               </div>
             )}
           </div>

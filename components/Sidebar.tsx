@@ -64,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   return (
     <>
-      <div className={`fixed inset-0 bg-slate-900/30 backdrop-blur-sm z-[60] xl:hidden transition-all duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
+      <div className={`fixed inset-0 bg-slate-950/40 backdrop-blur-sm z-[60] xl:hidden transition-all duration-300 ${isOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} onClick={onClose} />
       
       <aside className={`fixed xl:relative inset-y-0 right-0 w-[85%] sm:w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border-l border-slate-100 dark:border-slate-800 flex flex-col shadow-2xl xl:shadow-none z-[70] transition-all duration-300 ease-in-out transform ${isOpen ? 'translate-x-0' : 'translate-x-full xl:translate-x-0'}`}>
         <div className="p-8 shrink-0 space-y-6">
@@ -103,9 +103,9 @@ const Sidebar: React.FC<SidebarProps> = ({
               placeholder="بحث عن نشيد..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-700 rounded-2xl py-3 pr-10 pl-4 text-sm font-bold text-slate-600 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[#4da8ab]/20 focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-500"
+              className="w-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl py-3 pr-10 pl-4 text-sm font-bold text-slate-600 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-[#4da8ab]/20 focus:bg-white dark:focus:bg-slate-800 transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
             />
-            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-500 group-focus-within:text-[#4da8ab] transition-colors">
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 group-focus-within:text-[#4da8ab] transition-colors">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
             </div>
           </div>
@@ -116,14 +116,14 @@ const Sidebar: React.FC<SidebarProps> = ({
             <div className="space-y-4">
               <div className="flex items-center gap-2 text-rose-500/60 px-2">
                 <span className="text-[10px] font-black uppercase tracking-[0.3em]">المفضلة</span>
-                <div className="flex-1 h-px bg-rose-100 dark:bg-rose-900/30" />
+                <div className="flex-1 h-px bg-rose-100 dark:bg-rose-900/20" />
               </div>
               <div className="space-y-2">
                 {favoriteTracks.map((item, favIdx) => (
                   <div key={item.track.id} className="group flex items-center gap-1">
                     <button 
                       onClick={() => { onSelect(item.originalIndex); if (onClose) onClose(); }}
-                      className={`flex-1 flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 ${currentId === item.track.id ? 'bg-[#4da8ab]/10 text-[#4da8ab] shadow-sm' : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
+                      className={`flex-1 flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 ${currentId === item.track.id ? 'bg-[#4da8ab]/10 text-[#4da8ab] shadow-sm' : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
                     >
                       <img src={item.track.coverUrl} className="w-10 h-10 rounded-xl object-cover shadow-sm" alt="" />
                       <span className="truncate font-bold text-xs flex-1 text-right">{item.track.name}</span>
@@ -133,14 +133,14 @@ const Sidebar: React.FC<SidebarProps> = ({
                       <button 
                         disabled={favIdx === 0}
                         onClick={(e) => handleMoveFavorite(e, favIdx, 'up')}
-                        className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${favIdx === 0 ? 'text-slate-100 dark:text-slate-800' : 'text-slate-400 dark:text-slate-500'}`}
+                        className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${favIdx === 0 ? 'text-slate-100 dark:text-slate-900' : 'text-slate-400 dark:text-slate-500'}`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg>
                       </button>
                       <button 
                         disabled={favIdx === favoriteTracks.length - 1}
                         onClick={(e) => handleMoveFavorite(e, favIdx, 'down')}
-                        className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${favIdx === favoriteTracks.length - 1 ? 'text-slate-100 dark:text-slate-800' : 'text-slate-400 dark:text-slate-500'}`}
+                        className={`p-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors ${favIdx === favoriteTracks.length - 1 ? 'text-slate-100 dark:text-slate-900' : 'text-slate-400 dark:text-slate-500'}`}
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
                       </button>
@@ -152,17 +152,17 @@ const Sidebar: React.FC<SidebarProps> = ({
           )}
 
           <div className="space-y-4">
-            <div className="flex items-center gap-2 text-slate-300 dark:text-slate-600 px-2">
+            <div className="flex items-center gap-2 text-slate-300 dark:text-slate-700 px-2">
               <span className="text-[10px] font-black uppercase tracking-[0.3em]">مكتبتك</span>
               <div className="flex-1 h-px bg-slate-50 dark:bg-slate-800" />
             </div>
             <div className="space-y-2">
               {tracks.length === 0 ? (
-                <div className="px-6 py-10 text-center bg-slate-50/50 dark:bg-slate-800/30 rounded-[24px] border border-dashed border-slate-100 dark:border-slate-800">
-                  <p className="text-[10px] text-slate-400 font-bold">لا يوجد ملفات</p>
+                <div className="px-6 py-10 text-center bg-slate-50/50 dark:bg-slate-900/30 rounded-[24px] border border-dashed border-slate-100 dark:border-slate-800">
+                  <p className="text-[10px] text-slate-400 dark:text-slate-600 font-bold">لا يوجد ملفات</p>
                 </div>
               ) : filteredTracksWithIndices.length === 0 ? (
-                <div className="px-6 py-10 text-center bg-slate-50/20 dark:bg-slate-800/10 rounded-[24px] border border-dashed border-slate-100 dark:border-slate-800">
+                <div className="px-6 py-10 text-center bg-slate-50/20 dark:bg-slate-900/10 rounded-[24px] border border-dashed border-slate-100 dark:border-slate-800">
                   <p className="text-[10px] text-slate-400 font-bold italic">لا توجد نتائج مطابقة لبحثك</p>
                 </div>
               ) : (
@@ -170,7 +170,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   <div key={item.track.id} className="group flex items-center gap-1">
                     <button 
                       onClick={() => { onSelect(item.originalIndex); if (onClose) onClose(); }}
-                      className={`flex-1 flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 ${currentId === item.track.id ? 'bg-[#4da8ab]/10 text-[#4da8ab] shadow-sm' : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-300'}`}
+                      className={`flex-1 flex items-center gap-4 p-4 rounded-[20px] transition-all duration-300 ${currentId === item.track.id ? 'bg-[#4da8ab]/10 text-[#4da8ab] shadow-sm' : 'hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-600 dark:text-slate-400'}`}
                     >
                       <img src={item.track.coverUrl} className="w-10 h-10 rounded-xl object-cover shadow-sm" alt="" />
                       <div className="flex-1 min-w-0 text-right">
@@ -185,7 +185,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       <button 
                         disabled={item.originalIndex === 0}
                         onClick={(e) => handleMoveUp(e, item.originalIndex)}
-                        className={`p-1 hover:text-[#4da8ab] transition-colors ${item.originalIndex === 0 ? 'text-slate-100 dark:text-slate-800' : 'text-slate-300 dark:text-slate-500'}`}
+                        className={`p-1 hover:text-[#4da8ab] transition-colors ${item.originalIndex === 0 ? 'text-slate-100 dark:text-slate-900' : 'text-slate-400 dark:text-slate-600'}`}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7"/></svg>
                       </button>
@@ -197,7 +197,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                       <button 
                         disabled={item.originalIndex === tracks.length - 1}
                         onClick={(e) => handleMoveDown(e, item.originalIndex)}
-                        className={`p-1 hover:text-[#4da8ab] transition-colors ${item.originalIndex === tracks.length - 1 ? 'text-slate-100 dark:text-slate-800' : 'text-slate-300 dark:text-slate-500'}`}
+                        className={`p-1 hover:text-[#4da8ab] transition-colors ${item.originalIndex === tracks.length - 1 ? 'text-slate-100 dark:text-slate-900' : 'text-slate-400 dark:text-slate-600'}`}
                       >
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7"/></svg>
                       </button>
