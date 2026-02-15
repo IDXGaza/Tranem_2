@@ -133,7 +133,7 @@ const App: React.FC = () => {
   }, [currentTrack, currentTrackIndex, tracks.length]);
 
   const handleSkipToNext = () => {
-    if (currentTrackIndex !== null) {
+    if (currentTrackIndex !== null && tracks.length > 0) {
       const nextIndex = (currentTrackIndex + 1) % tracks.length;
       handleSelectTrack(nextIndex);
     }
@@ -317,30 +317,29 @@ const App: React.FC = () => {
   };
 
   const handleMoveTrack = async (fromIndex: number, toIndex: number) => {
-    if (toIndex < 0 || toIndex >= tracks.length) return;
+    if (fromIndex === toIndex) return;
     const newTracks = [...tracks];
-    const [moved] = newTracks.splice(fromIndex, 1);
-    newTracks.splice(toIndex, 0, moved);
+    const [movedItem] = newTracks.splice(fromIndex, 1);
+    newTracks.splice(toIndex, 0, movedItem);
+    
     const updatedTracks = newTracks.map((t, idx) => ({ ...t, order: idx }));
     setTracks(updatedTracks);
+    
     const newIdx = updatedTracks.findIndex(t => t.id === currentTrack?.id);
     if (newIdx !== -1) setCurrentTrackIndex(newIdx);
+    
     for (const track of updatedTracks) await saveTrackToDB(track);
   };
 
   return (
-    <div className="flex flex-col h-screen h-[100dvh] bg-[#f8fafb] dark:bg-slate-950 text-slate-700 dark:text-slate-200 overflow-hidden font-cairo watercolor-bg relative transition-colors duration-300">
-      <header className="flex lg:hidden items-center justify-between p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-lg border-b border-slate-100 dark:border-slate-800 shrink-0 z-40 landscape:py-2">
+    <div className="flex flex-col h-screen h-[100dvh] bg-[#f8fafb] dark:bg-black text-slate-700 dark:text-slate-200 overflow-hidden font-cairo watercolor-bg relative transition-colors duration-300">
+      <header className="flex lg:hidden items-center justify-between p-4 bg-white/80 dark:bg-black/80 backdrop-blur-lg border-b border-slate-100 dark:border-slate-900 shrink-0 z-40">
         <button onClick={() => setIsSidebarOpen(true)} className="p-2 text-[#4da8ab] active:scale-95 transition-transform">
           <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
         </button>
         <h1 className="text-xl font-black text-[#4da8ab]">ترانيم</h1>
         <button onClick={toggleDarkMode} className="p-2 text-slate-500 dark:text-slate-400">
-          {isDarkMode ? (
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zM2 13h2c.55 0 1-.45 1-1s-.45-1-1-1H2c-.55 0-1 .45-1 1s.45 1 1 1zm18 0h2c.55 0 1-.45 1-1s-.45-1-1-1h-2c-.55 0-1 .45-1 1s.45 1 1 1zM11 2v2c0 .55.45 1 1 1s1-.45 1-1V2c0-.55-.45-1-1-1s-1 .45-1 1zm0 18v2c0 .55.45 1 1 1s1-.45 1-1v-2c0-.55-.45-1-1-1s-1 .45-1 1zM5.99 4.58a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0s.39-1.03 0-1.41L5.99 4.58zm12.37 12.37a.996.996 0 00-1.41 0 .996.996 0 000 1.41l1.06 1.06c.39.39 1.03.39 1.41 0a.996.996 0 000-1.41l-1.06-1.06zm1.06-12.37a.996.996 0 00-1.41 0l-1.06 1.06c-.39.39-.39 1.03 0 1.41s1.03.39 1.41 0l1.06-1.06a.996.996 0 000-1.41zM5.99 19.42a.996.996 0 001.41 0l1.06-1.06c.39-.39.39-1.03 0-1.41s-1.03-.39-1.41 0l-1.06 1.06c-.38.39-.38 1.03 0 1.41z"/></svg>
-          ) : (
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9s4.03 9 9 9 9-4.03 9-9c0-.46-.04-.92-.1-1.36-.98 1.37-2.58 2.26-4.4 2.26-3.03 0-5.5-2.47-5.5-5.5 0-1.82.89-3.42 2.26-4.4-.44-.06-.9-.1-1.36-.1z"/></svg>
-          )}
+          {isDarkMode ? '☀️' : '🌙'}
         </button>
       </header>
 
@@ -357,7 +356,7 @@ const App: React.FC = () => {
             {currentTrack ? (
               <div className="w-full flex flex-col items-center space-y-6 md:space-y-10 animate-in fade-in duration-500">
                 <div className="relative group w-full max-w-[200px] md:max-w-xs lg:max-w-sm shrink-0">
-                  <div className="relative aspect-square w-full overflow-hidden rounded-[40px] md:rounded-[60px] shadow-2xl border-[4px] md:border-[6px] border-white dark:border-slate-800 group-hover:scale-[1.01] transition-all duration-500">
+                  <div className="relative aspect-square w-full overflow-hidden rounded-[40px] md:rounded-[60px] shadow-2xl border-[4px] md:border-[6px] border-white dark:border-slate-900 group-hover:scale-[1.01] transition-all duration-500">
                     <img src={currentTrack.coverUrl} className="w-full h-full object-cover" alt="" />
                     <button onClick={() => coverInputRef.current?.click()} className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white z-20 cursor-pointer">
                       <svg className="w-8 h-8 md:w-12 md:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -370,7 +369,7 @@ const App: React.FC = () => {
                   <div className="flex justify-center w-full">
                     <button 
                       onClick={handleUpdateName} 
-                      className="flex items-center gap-2 group/title hover:bg-[#4da8ab]/10 bg-[#4da8ab]/5 px-5 py-3 rounded-2xl transition-all active:scale-95 cursor-pointer border border-[#4da8ab]/20 dark:border-[#4da8ab]/30 max-w-[90vw] md:max-w-[70vw] lg:max-w-[600px]"
+                      className="flex items-center gap-2 group/title hover:bg-[#4da8ab]/10 bg-[#4da8ab]/5 px-5 py-3 rounded-2xl transition-all active:scale-95 cursor-pointer border border-[#4da8ab]/20 dark:border-[#4da8ab]/10 max-w-[90vw] md:max-w-[70vw] lg:max-w-[600px]"
                     >
                       <h1 className="text-xl md:text-3xl lg:text-4xl font-black text-slate-800 dark:text-slate-100 leading-tight truncate group-hover/title:text-[#4da8ab] flex-1">
                         {currentTrack.name}
@@ -381,7 +380,7 @@ const App: React.FC = () => {
                   <div className="flex justify-center w-full">
                     <button 
                       onClick={handleUpdateArtist} 
-                      className="flex items-center gap-2 group/artist hover:bg-slate-200 dark:hover:bg-slate-800 bg-slate-100 dark:bg-slate-900 px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer max-w-[80vw] md:max-w-[50vw]"
+                      className="flex items-center gap-2 group/artist hover:bg-slate-200 dark:hover:bg-slate-900 bg-slate-100 dark:bg-black border dark:border-slate-800 px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer max-w-[80vw] md:max-w-[50vw]"
                     >
                       <span className={`text-sm md:text-xl font-bold transition-colors group-hover/artist:text-[#4da8ab] truncate ${currentTrack.artist ? 'text-slate-600 dark:text-slate-300' : 'text-slate-400 italic'}`}>
                         {currentTrack.artist || "إضافة اسم الفنان..."}
@@ -401,7 +400,7 @@ const App: React.FC = () => {
                 <div className="w-20 h-20 bg-[#4da8ab]/5 rounded-[24px] flex items-center justify-center text-[#4da8ab]">
                   <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
                 </div>
-                <h2 className="text-lg font-black text-slate-800 dark:text-slate-400">مكتبتك خالية</h2>
+                <h2 className="text-lg font-black text-slate-800 dark:text-slate-200">مكتبتك خالية</h2>
               </div>
             )}
           </div>
@@ -410,7 +409,7 @@ const App: React.FC = () => {
 
       <footer className="fixed bottom-0 left-0 right-0 z-[50] p-4 md:p-8 pointer-events-none mb-[env(safe-area-inset-bottom,0px)]">
         <audio key={currentTrack?.url} ref={audioRef} src={currentTrack?.url} className="hidden" preload="auto" crossOrigin="anonymous" />
-        <div className="max-w-3xl mx-auto bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-white/50 dark:border-slate-800 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.3)] rounded-[32px] pointer-events-auto overflow-hidden transition-colors duration-300">
+        <div className="max-w-3xl mx-auto bg-white/95 dark:bg-black/80 backdrop-blur-3xl border border-white/50 dark:border-slate-800 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.3)] rounded-[32px] pointer-events-auto overflow-hidden transition-colors duration-300">
           <Player track={currentTrack} state={playerState} onPlayPause={handlePlayPause} onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} onSkip={(s) => audioRef.current && (audioRef.current.currentTime += s)} onRateChange={handleRateChange} onToggleFavorite={handleToggleFavorite} onToggleLoop={handleToggleLoop} onAddTimestamp={handleAddTimestamp} hasError={!!loadError} />
         </div>
       </footer>
