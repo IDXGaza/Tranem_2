@@ -12,7 +12,7 @@ const STORE_NAME = 'tracks';
 
 const initDB = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(DB_NAME, 2);
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
@@ -30,7 +30,10 @@ const saveTrackToDB = async (track: any): Promise<void> => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
-    tx.objectStore(STORE_NAME).put(track);
+    const store = tx.objectStore(STORE_NAME);
+    // تنظيف البيانات المؤقتة قبل الحفظ
+    const { url, coverUrl, ...dataToSave } = track;
+    store.put(dataToSave);
   });
 };
 
@@ -60,6 +63,9 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [editingField, setEditingField] = useState<'name' | 'artist' | null>(null);
+  const [editValue, setEditValue] = useState('');
+  
   const [playerState, setPlayerState] = useState<PlayerState>({
     isPlaying: false,
     currentTime: 0,
@@ -96,15 +102,19 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const loadData = async () => {
-      const savedTracks = await getAllTracksFromDB();
-      const sortedTracks = savedTracks.sort((a, b) => (a.order || 0) - (b.order || 0));
-      const tracksWithUrls = sortedTracks.map(t => ({
-        ...t,
-        url: URL.createObjectURL(t.fileBlob),
-        coverUrl: t.coverBlob ? URL.createObjectURL(t.coverBlob) : (t.coverUrl || UNIFORM_PLACEHOLDER)
-      }));
-      setTracks(tracksWithUrls);
-      if (tracksWithUrls.length > 0) setCurrentTrackIndex(0);
+      try {
+        const savedTracks = await getAllTracksFromDB();
+        const sortedTracks = savedTracks.sort((a, b) => (a.order || 0) - (b.order || 0));
+        const tracksWithUrls = sortedTracks.map(t => ({
+          ...t,
+          url: URL.createObjectURL(t.fileBlob),
+          coverUrl: t.coverBlob ? URL.createObjectURL(t.coverBlob) : (t.coverUrl || UNIFORM_PLACEHOLDER)
+        }));
+        setTracks(tracksWithUrls);
+        if (tracksWithUrls.length > 0) setCurrentTrackIndex(0);
+      } catch (err) {
+        console.error("Failed to load tracks:", err);
+      }
     };
     loadData();
   }, []);
@@ -115,9 +125,7 @@ const App: React.FC = () => {
         title: currentTrack.name,
         artist: currentTrack.artist || 'ترانيم',
         album: 'مكتبتي',
-        artwork: [
-          { src: currentTrack.coverUrl, sizes: '512x512', type: 'image/png' },
-        ]
+        artwork: [{ src: currentTrack.coverUrl, sizes: '512x512', type: 'image/png' }]
       });
 
       navigator.mediaSession.setActionHandler('play', () => handlePlayPause());
@@ -126,9 +134,7 @@ const App: React.FC = () => {
         if (currentTrackIndex !== null && currentTrackIndex > 0) handleSelectTrack(currentTrackIndex - 1);
         else if (currentTrackIndex === 0) handleSelectTrack(tracks.length - 1);
       });
-      navigator.mediaSession.setActionHandler('nexttrack', () => {
-        handleSkipToNext();
-      });
+      navigator.mediaSession.setActionHandler('nexttrack', () => handleSkipToNext());
     }
   }, [currentTrack, currentTrackIndex, tracks.length]);
 
@@ -144,32 +150,20 @@ const App: React.FC = () => {
     if (!audio) return;
 
     const updateTime = () => setPlayerState(prev => ({ ...prev, currentTime: audio.currentTime }));
-    
-    const onEnded = () => {
-      if (playerState.isLooping) {
-        audio.currentTime = 0;
-        audio.play().catch(() => {});
-      } else {
-        handleSkipToNext();
-      }
-    };
-
+    const onEnded = () => playerState.isLooping ? (audio.currentTime = 0, audio.play().catch(() => {})) : handleSkipToNext();
     const onWaiting = () => setPlayerState(prev => ({ ...prev, isLoading: true }));
     const onPlaying = () => setPlayerState(prev => ({ ...prev, isLoading: false }));
-    
     const onCanPlay = () => {
       setLoadError(null);
       setPlayerState(prev => ({ ...prev, isLoading: false }));
       if (playerState.isPlaying) audio.play().catch(() => {});
     };
-
     const onLoadedMetadata = () => {
       if (audio && currentTrackIndex !== null) {
         setTracks(prev => prev.map((t, idx) => idx === currentTrackIndex ? { ...t, duration: audio.duration } : t));
         audio.playbackRate = playerState.playbackRate;
       }
     };
-
     const onError = () => {
       setLoadError("فشل تشغيل المقطع.");
       setPlayerState(prev => ({ ...prev, isPlaying: false, isLoading: false }));
@@ -210,13 +204,22 @@ const App: React.FC = () => {
     }
   };
 
-  const handleToggleLoop = () => {
-    setPlayerState(prev => ({ ...prev, isLooping: !prev.isLooping }));
+  const startEditing = (field: 'name' | 'artist', value: string) => {
+    setEditingField(field);
+    setEditValue(value || "");
   };
 
-  const handleRateChange = (rate: number) => {
-    if (audioRef.current) audioRef.current.playbackRate = rate;
-    setPlayerState(prev => ({ ...prev, playbackRate: rate }));
+  const saveEdit = () => {
+    if (!currentTrack || !editingField) return;
+    const value = editValue.trim();
+    if (editingField === 'name' && value === "") {
+      setEditingField(null);
+      return;
+    }
+    const updatedTrack = { ...currentTrack, [editingField]: value };
+    setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
+    saveTrackToDB(updatedTrack);
+    setEditingField(null);
   };
 
   const handleToggleFavorite = () => {
@@ -224,32 +227,6 @@ const App: React.FC = () => {
     const updatedTrack = { ...currentTrack, isFavorite: !currentTrack.isFavorite };
     setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
     saveTrackToDB(updatedTrack);
-  };
-
-  const handleUpdateName = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!currentTrack) return;
-    const oldName = currentTrack.name;
-    const newName = window.prompt("تعديل اسم الأنشودة:", oldName);
-    if (newName !== null && newName.trim() !== "" && newName !== oldName) {
-      const updatedTrack = { ...currentTrack, name: newName.trim() };
-      setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
-      saveTrackToDB(updatedTrack);
-    }
-  };
-
-  const handleUpdateArtist = (e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (!currentTrack) return;
-    const oldArtist = currentTrack.artist || "";
-    const newArtist = window.prompt("تعديل اسم الفنان:", oldArtist);
-    if (newArtist !== null && newArtist !== oldArtist) {
-      const updatedTrack = { ...currentTrack, artist: newArtist.trim() };
-      setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
-      saveTrackToDB(updatedTrack);
-    }
   };
 
   const handleUpdateCover = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -260,27 +237,6 @@ const App: React.FC = () => {
       setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
       saveTrackToDB(updatedTrack);
     }
-  };
-
-  const handleAddTimestamp = () => {
-    if (!audioRef.current || !currentTrack) return;
-    const time = audioRef.current.currentTime;
-    const label = `علامة ${currentTrack.timestamps.length + 1}`;
-    const newTimestamp: Timestamp = {
-      id: Math.random().toString(36).substr(2, 9),
-      time,
-      label
-    };
-    const updatedTrack = { ...currentTrack, timestamps: [...currentTrack.timestamps, newTimestamp] };
-    setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
-    saveTrackToDB(updatedTrack);
-  };
-
-  const handleRemoveTimestamp = (timestampId: string) => {
-    if (!currentTrack) return;
-    const updatedTrack = { ...currentTrack, timestamps: currentTrack.timestamps.filter(ts => ts.id !== timestampId) };
-    setTracks(prev => prev.map(t => t.id === currentTrack.id ? updatedTrack : t));
-    saveTrackToDB(updatedTrack);
   };
 
   const addTrack = async (file: File) => {
@@ -321,13 +277,10 @@ const App: React.FC = () => {
     const newTracks = [...tracks];
     const [movedItem] = newTracks.splice(fromIndex, 1);
     newTracks.splice(toIndex, 0, movedItem);
-    
     const updatedTracks = newTracks.map((t, idx) => ({ ...t, order: idx }));
     setTracks(updatedTracks);
-    
     const newIdx = updatedTracks.findIndex(t => t.id === currentTrack?.id);
     if (newIdx !== -1) setCurrentTrackIndex(newIdx);
-    
     for (const track of updatedTracks) await saveTrackToDB(track);
   };
 
@@ -355,43 +308,80 @@ const App: React.FC = () => {
           <div className="px-4 py-8 md:p-12 max-w-4xl mx-auto w-full flex flex-col items-center">
             {currentTrack ? (
               <div className="w-full flex flex-col items-center space-y-6 md:space-y-10 animate-in fade-in duration-500">
+                
+                {/* قسم الغلاف */}
                 <div className="relative group w-full max-w-[200px] md:max-w-xs lg:max-w-sm shrink-0">
                   <div className="relative aspect-square w-full overflow-hidden rounded-[40px] md:rounded-[60px] shadow-2xl border-[4px] md:border-[6px] border-white dark:border-slate-900 group-hover:scale-[1.01] transition-all duration-500">
                     <img src={currentTrack.coverUrl} className="w-full h-full object-cover" alt="" />
-                    <button onClick={() => coverInputRef.current?.click()} className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white z-20 cursor-pointer">
+                    <button onClick={() => coverInputRef.current?.click()} className="absolute inset-0 bg-black/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white z-20 cursor-pointer backdrop-blur-[2px]">
                       <svg className="w-8 h-8 md:w-12 md:h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
                     </button>
                     <input type="file" ref={coverInputRef} className="hidden" accept="image/*" onChange={handleUpdateCover} />
                   </div>
                 </div>
 
+                {/* قسم البيانات مع ميزة التعديل المباشر */}
                 <div className="relative z-30 text-center w-full px-4 min-w-0 space-y-3 md:space-y-6">
                   <div className="flex justify-center w-full">
-                    <button 
-                      onClick={handleUpdateName} 
-                      className="flex items-center gap-2 group/title hover:bg-[#4da8ab]/10 bg-[#4da8ab]/5 px-5 py-3 rounded-2xl transition-all active:scale-95 cursor-pointer border border-[#4da8ab]/20 dark:border-[#4da8ab]/10 max-w-[90vw] md:max-w-[70vw] lg:max-w-[600px]"
-                    >
-                      <h1 className="text-xl md:text-3xl lg:text-4xl font-black text-slate-800 dark:text-slate-100 leading-tight truncate group-hover/title:text-[#4da8ab] flex-1">
-                        {currentTrack.name}
-                      </h1>
-                      <svg className="w-5 h-5 md:w-6 md:h-6 text-[#4da8ab] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                    </button>
+                    {editingField === 'name' ? (
+                      <input 
+                        autoFocus
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={saveEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEdit();
+                          if (e.key === 'Escape') setEditingField(null);
+                        }}
+                        className="text-center text-xl md:text-3xl lg:text-4xl font-black bg-white/50 dark:bg-white/10 border-2 border-[#4da8ab] rounded-2xl px-5 py-2 w-full max-w-lg outline-none text-slate-800 dark:text-white"
+                      />
+                    ) : (
+                      <button 
+                        onClick={() => startEditing('name', currentTrack.name)} 
+                        className="flex items-center gap-3 group/title hover:bg-[#4da8ab]/10 bg-[#4da8ab]/5 px-6 py-4 rounded-3xl transition-all active:scale-95 cursor-pointer border border-[#4da8ab]/20 dark:border-[#4da8ab]/10 max-w-[95vw] md:max-w-[70vw] lg:max-w-[650px]"
+                      >
+                        <h1 className="text-xl md:text-3xl lg:text-4xl font-black text-slate-800 dark:text-slate-100 leading-tight truncate group-hover/title:text-[#4da8ab] flex-1">
+                          {currentTrack.name}
+                        </h1>
+                        <svg className="w-4 h-4 md:w-5 md:h-5 text-[#4da8ab] shrink-0 opacity-40 group-hover/title:opacity-100 transition-opacity" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      </button>
+                    )}
                   </div>
+
                   <div className="flex justify-center w-full">
-                    <button 
-                      onClick={handleUpdateArtist} 
-                      className="flex items-center gap-2 group/artist hover:bg-slate-200 dark:hover:bg-slate-900 bg-slate-100 dark:bg-black border dark:border-slate-800 px-4 py-2 rounded-xl transition-all active:scale-95 cursor-pointer max-w-[80vw] md:max-w-[50vw]"
-                    >
-                      <span className={`text-sm md:text-xl font-bold transition-colors group-hover/artist:text-[#4da8ab] truncate ${currentTrack.artist ? 'text-slate-600 dark:text-slate-300' : 'text-slate-400 italic'}`}>
-                        {currentTrack.artist || "إضافة اسم الفنان..."}
-                      </span>
-                      <svg className="w-4 h-4 text-slate-400 group-hover/artist:text-[#4da8ab] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                    </button>
+                    {editingField === 'artist' ? (
+                      <input 
+                        autoFocus
+                        value={editValue}
+                        onChange={(e) => setEditValue(e.target.value)}
+                        onBlur={saveEdit}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') saveEdit();
+                          if (e.key === 'Escape') setEditingField(null);
+                        }}
+                        className="text-center text-sm md:text-xl font-bold bg-white/50 dark:bg-white/10 border-2 border-slate-300 dark:border-slate-600 rounded-xl px-4 py-2 w-full max-w-xs outline-none text-slate-700 dark:text-slate-200"
+                        placeholder="اسم الفنان..."
+                      />
+                    ) : (
+                      <button 
+                        onClick={() => startEditing('artist', currentTrack.artist)} 
+                        className="flex items-center gap-2 group/artist hover:bg-slate-200 dark:hover:bg-slate-900 bg-slate-100 dark:bg-black border dark:border-slate-800 px-5 py-2.5 rounded-2xl transition-all active:scale-95 cursor-pointer max-w-[85vw] md:max-w-[50vw]"
+                      >
+                        <span className={`text-sm md:text-xl font-bold transition-colors group-hover/artist:text-[#4da8ab] truncate ${currentTrack.artist ? 'text-slate-600 dark:text-slate-300' : 'text-slate-400 italic'}`}>
+                          {currentTrack.artist || "إضافة اسم الفنان..."}
+                        </span>
+                        <svg className="w-3.5 h-3.5 text-slate-400 group-hover/artist:text-[#4da8ab] shrink-0 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      </button>
+                    )}
                   </div>
                 </div>
 
                 <div className="w-full max-w-2xl px-2">
-                  <TimestampManager timestamps={currentTrack.timestamps} onRemove={handleRemoveTimestamp} onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} currentTime={playerState.currentTime} />
+                  <TimestampManager timestamps={currentTrack.timestamps} onRemove={(tid) => {
+                    const updated = { ...currentTrack, timestamps: currentTrack.timestamps.filter(ts => ts.id !== tid) };
+                    setTracks(prev => prev.map(t => t.id === currentTrack.id ? updated : t));
+                    saveTrackToDB(updated);
+                  }} onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} currentTime={playerState.currentTime} />
                 </div>
                 <div className="h-64 md:h-80 shrink-0 w-full" aria-hidden="true" />
               </div>
@@ -410,7 +400,32 @@ const App: React.FC = () => {
       <footer className="fixed bottom-0 left-0 right-0 z-[50] p-4 md:p-8 pointer-events-none mb-[env(safe-area-inset-bottom,0px)]">
         <audio key={currentTrack?.url} ref={audioRef} src={currentTrack?.url} className="hidden" preload="auto" crossOrigin="anonymous" />
         <div className="max-w-3xl mx-auto bg-white/95 dark:bg-black/80 backdrop-blur-3xl border border-white/50 dark:border-slate-800 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.3)] rounded-[32px] pointer-events-auto overflow-hidden transition-colors duration-300">
-          <Player track={currentTrack} state={playerState} onPlayPause={handlePlayPause} onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} onSkip={(s) => audioRef.current && (audioRef.current.currentTime += s)} onRateChange={handleRateChange} onToggleFavorite={handleToggleFavorite} onToggleLoop={handleToggleLoop} onAddTimestamp={handleAddTimestamp} hasError={!!loadError} />
+          <Player 
+            track={currentTrack} 
+            state={playerState} 
+            onPlayPause={handlePlayPause} 
+            onSeek={(t) => audioRef.current && (audioRef.current.currentTime = t)} 
+            onSkip={(s) => audioRef.current && (audioRef.current.currentTime += s)} 
+            onRateChange={(r) => {
+              if (audioRef.current) audioRef.current.playbackRate = r;
+              setPlayerState(prev => ({ ...prev, playbackRate: r }));
+            }} 
+            onToggleFavorite={handleToggleFavorite} 
+            onToggleLoop={() => setPlayerState(prev => ({ ...prev, isLooping: !prev.isLooping }))} 
+            onAddTimestamp={() => {
+              if (!audioRef.current || !currentTrack) return;
+              const time = audioRef.current.currentTime;
+              const newTimestamp: Timestamp = {
+                id: Math.random().toString(36).substr(2, 9),
+                time,
+                label: `علامة ${currentTrack.timestamps.length + 1}`
+              };
+              const updated = { ...currentTrack, timestamps: [...currentTrack.timestamps, newTimestamp] };
+              setTracks(prev => prev.map(t => t.id === currentTrack.id ? updated : t));
+              saveTrackToDB(updated);
+            }} 
+            hasError={!!loadError} 
+          />
         </div>
       </footer>
     </div>

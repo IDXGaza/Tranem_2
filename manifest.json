@@ -1,0 +1,22 @@
+
+{
+  "name": "ترانيم - Traneem",
+  "short_name": "ترانيم",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#f8fafb",
+  "theme_color": "#4da8ab",
+  "icons": [
+    {
+      "src": "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=192&h=192&auto=format&fit=crop",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?q=80&w=512&h=512&auto=format&fit=crop",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
