@@ -15,7 +15,7 @@ export interface Track {
   timestamps: Timestamp[];
   duration: number;
   playbackRate: number;
-  order: number; // للتحكم في ترتيب العرض
+  order: number;
 }
 
 export interface PlayerState {
@@ -24,5 +24,5 @@ export interface PlayerState {
   volume: number;
   playbackRate: number;
   isLoading: boolean;
-  isLooping: boolean; // ميزة التكرار المضافة
+  isLooping: boolean;
 }
