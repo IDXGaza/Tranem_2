@@ -33,11 +33,18 @@ const Sidebar: React.FC<SidebarProps> = ({
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && (file.type.startsWith('audio/') || file.name.match(/\.(mp3|wav|m4a|ogg|flac|aac)$/i))) {
+    if (!file) return;
+
+    const isAudio = file.type.startsWith('audio/') || file.name.match(/\.(mp3|wav|m4a|ogg|flac|aac)$/i);
+    
+    if (isAudio) {
       onImport(file);
-      e.target.value = '';
       if (onClose) onClose();
+    } else {
+      alert('عذراً، لا يمكن رفع هذا الملف. يرجى اختيار ملف صوتي فقط (مثل MP3 أو WAV).');
     }
+    
+    e.target.value = '';
   };
 
   const onDragStart = (e: React.DragEvent, index: number) => {
